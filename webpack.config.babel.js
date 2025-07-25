@@ -10,6 +10,7 @@ module.exports = {
     filename: 'app.js',
   },
   target: 'web',
+  target: 'web',
   module: {
     rules: [
       {
@@ -21,6 +22,10 @@ module.exports = {
             cacheDirectory: true,
           },
         },
+      },
+      {
+        test: /\.css$/,              // <--- Add this rule
+        use: ['style-loader', 'css-loader'],
       },
     ],
   },

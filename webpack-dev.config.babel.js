@@ -12,6 +12,12 @@ module.exports = {
     devMiddleware: {
       publicPath,
     },
+    watchFiles: {
+      paths: ['src/**/*'],
+      options: {
+        ignored: ['**/storage.json'],  // <-- ignore storage.json
+      },
+    },
     compress: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
     static: {

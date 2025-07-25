@@ -1,8 +1,8 @@
 {
-  "name": "_dev_react_redux_module_template",
-  "displayName": "React Redux Module Development",
-  "description": "A Nexus Wallet Module template built with React and Redux, also includes boilerplate code and example usages of some Nexus Wallet Module's advanced features",
+  "name": "dev_nexus_dex_trade_module",
+  "displayName": "Nexus Dex-Trade Module",
+  "description": "A Nexus Wallet Module allowing full access to the Dex-Trade.com exchange for trading NXS",
   "type": "app",
   "entry": "http://localhost:24011/dev.html",
-  "icon": "dist/react.svg"
+  "icon": "dist/exchange.svg"
 }

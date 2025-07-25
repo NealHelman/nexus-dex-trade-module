@@ -1,186 +1,184 @@
-import { useState } from 'react';
-import styled from '@emotion/styled';
-import { useSelector, useDispatch } from 'react-redux';
-import {
-  Panel,
-  Switch,
-  Tooltip,
-  TextField,
-  Button,
-  FieldSet,
-  confirm,
-  apiCall,
-  showErrorDialog,
-  showSuccessDialog,
-} from 'nexus-module';
+import { useSelector } from 'react-redux';
+import { Copyright } from '../utils/copyright.js';
+import nxsPackage from '../../nxs_package.json';
+import styles from '../Styles/styles.css';
 
-import {
-  showConnections,
-  hideConnections,
-  updateInput,
-} from 'actions/actionCreators';
+import DashboardPage from './DashboardPage';
+import TradePage from './TradePage';
+import DepositWithdrawPage from './DepositWithdrawPage';
+import ReferralPage from './ReferralPage';
+import SettingsPage from './SettingsPage';
 
-const DemoTextField = styled(TextField)({
-  maxWidth: 400,
-});
+const { version } = nxsPackage;
+const {
+  libraries: {
+    React,
+    ReactDOM,
+    emotion: { react, styled, cache },
+  },
+  components: {
+    Button,
+    Modal,
+    Panel,
+    Dropdown,
+    FieldSet,
+    TextField,
+    Tooltip,
+    HorizontalTab
+  },
+  utilities: {
+    apiCall,
+    confirm,
+    openInBrowser,
+    proxyRequest,
+    updateState,
+    updateStorage,
+    secureApiCall,
+    send,
+    showErrorDialog,
+    showInfoDialog,
+    showSuccessDialog
+  }
+} = NEXUS;
+
+const { useState, useRef } = React;
+
+// Runtime-only load of storage.json (not part of Webpack static graph)
+function getCurrentStorage() {
+  try {
+    delete require.cache[require.resolve('../../storage.json')];
+    return require('../../storage.json');
+  } catch (e) {
+    return {};
+  }
+}
 
 export default function Main() {
-  const coreInfo = useSelector((state) => state.nexus.coreInfo);
+  const [isInitialized, setIsInitialized] = useState(false);
   const userStatus = useSelector((state) => state.nexus.userStatus);
-  const showingConnections = useSelector(
-    (state) => state.settings.showingConnections
-  );
-  const inputValue = useSelector((state) => state.ui.inputValue);
-  const dispatch = useDispatch();
-  const confirmToggle = async () => {
-    const question = showingConnections
-      ? 'Hide number of connections?'
-      : 'Show number of connections?';
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [selected, setSelected] = useState('dashboard');
+  const [showModal, setShowModal] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [error, setError] = useState('');
 
-    const agreed = await confirm({ question });
-    if (agreed) {
-      if (showingConnections) {
-        dispatch(hideConnections());
-      } else {
-        dispatch(showConnections());
-      }
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+  console.log(`Main.js rendered ${renderCount.current} times`);
+
+  const TABS = [
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'trade', label: 'Trade' },
+    { key: 'deposit', label: 'Deposit/Withdraw' },
+    { key: 'referral', label: 'Referral' },
+    { key: 'settings', label: 'Settings' },
+  ];
+
+  // Ref to track last saved tab to avoid repeated writes
+  const lastSavedTabRef = useRef(null);
+
+  const handleCredsSubmit = async (apiKey) => {
+    if (!apiKey || isAuthenticated) return;
+    const currentStorage = store.getState();
+    updateStorage({ ...currentStorage, apiKey });
+    setIsAuthenticated(true);
+    setShowModal(false);
+    setSelected('dashboard');
+    showSuccessDialog({ message: 'Your Dex-Trade API key has been saved.' });
+  };
+
+  // Initialization logic runs only on mount
+  React.useEffect(() => {
+    const currentStorage = getCurrentStorage();
+
+    if (currentStorage.selected) {
+      setSelected(currentStorage.selected);
+      lastSavedTabRef.current = currentStorage.selected; // remember initial tab
+    } else {
+      lastSavedTabRef.current = 'dashboard';
     }
-  };
-  const handleChange = (e) => {
-    dispatch(updateInput(e.target.value));
-  };
-  const [checkingMetrics, setCheckingMetrics] = useState(false);
-  const viewMetrics = async () => {
-    try {
-      setCheckingMetrics(true);
-      const result = await apiCall('system/get/metrics');
-      showSuccessDialog({
-        message: 'Tritium Metrics',
-        note: JSON.stringify(result, null, 2),
-      });
-    } catch (error) {
-      showErrorDialog({
-        message: 'Cannot get metrics',
-        note: error?.message || 'Unknown error',
-      });
-    } finally {
-      setCheckingMetrics(false);
+
+    if (currentStorage.apiKey) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+      setSelected('settings');
+      lastSavedTabRef.current = 'settings';
+      setShowModal(true);
     }
-  };
+
+    setIsInitialized(true);
+  }, []);
+
+  // Persist tab changes (only after initialization and only if changed)
+  React.useEffect(() => {
+    if (!isInitialized) return;
+    if (selected !== lastSavedTabRef.current) {
+      const currentStorage = getCurrentStorage();
+      updateStorage({ ...currentStorage, selected });
+      lastSavedTabRef.current = selected;
+    }
+  }, [selected, isInitialized]);
 
   return (
-    <Panel title="React Redux Module" icon={{ url: 'react.svg', id: 'icon' }}>
-      <div className="text-center">
-        Check out{' '}
-        <Button
-          skin="hyperlink"
-          as="a"
-          href="https://github.com/Nexusoft/NexusInterface/tree/master/docs/Modules"
-        >
-          Developer's guide to Nexus Wallet Module
-        </Button>{' '}
-        for documentation and API reference.
-      </div>
-
-      <div className="mt2 flex center">
-        <FieldSet legend="Module storage">
-          <p>
-            <strong>Module storage</strong> is a feature that allows modules to
-            save data (module's settings for example) into a file so that it
-            won't be lost when user closes their wallet.
-          </p>
-          <p>
-            The on/off state of the switch below will be saved to a file using{' '}
-            <Button
-              skin="hyperlink"
-              as="a"
-              href="https://github.com/Nexusoft/NexusInterface/blob/master/docs/Modules/nexus-global-variable.md#updatestorage"
-            >
-              updateStorage
-            </Button>{' '}
-            utility function. Try switching it and restart your wallet to see if
-            the switch state is retained.
-          </p>
-          <Tooltip.Trigger
-            position="right"
-            tooltip="Click me then restart wallet"
+    <Panel title="Nexus Dex-Trade Module" icon={{ url: 'exchange.svg', id: 'icon' }}>
+      <HorizontalTab.TabBar>
+        {TABS.map(tab => (
+          <HorizontalTab
+            key={tab.key}
+            active={selected === tab.key}
+            onClick={() => setSelected(tab.key)}
           >
-            <Switch checked={showingConnections} onChange={confirmToggle} />
-          </Tooltip.Trigger>
-        </FieldSet>
-      </div>
+            {tab.label}
+          </HorizontalTab>
+        ))}
+      </HorizontalTab.TabBar>
 
-      <div className="mt2">
-        <FieldSet legend="Module state">
-          <p>
-            Since your module is embedded inside a &lt;webview&gt; tag, normally
-            when user navigates away from your module page, the &lt;Webview&gt;
-            will be unmounted and all your module state will be lost.{' '}
-            <strong>Module state</strong> is a feature that allows modules to
-            save temporary state data on the base wallet so that it won't be
-            lost when user navigates away from the module.
-          </p>
-          <p>
-            The content of the textbox below will be saved to base wallet's
-            state using{' '}
-            <Button
-              skin="hyperlink"
-              as="a"
-              href="https://github.com/Nexusoft/NexusInterface/blob/master/docs/Modules/nexus-global-variable.md#updatestate"
+      {selected === 'dashboard' && <DashboardPage />}
+      {selected === 'trade' && <TradePage />}
+      {selected === 'deposit' && <DepositWithdrawPage />}
+      {selected === 'referral' && <ReferralPage />}
+      {selected === 'settings' && <SettingsPage />}
+
+      {showModal && !isAuthenticated && (
+        <Modal 
+          title="Dex-Trade API Key" 
+          removeModal={() => setShowModal(false)}
+          show
+          >
+          <FieldSet
+            legend="Enter your Dex-Trade API Key"
+            style={{ marginLeft: '1em', marginRight: '1em' }}
             >
-              updateState
-            </Button>{' '}
-            utility function. Try filling it out then switch to Overview and
-            switch back to see if the content is still there.
-          </p>
-          <DemoTextField
-            value={inputValue}
-            onChange={handleChange}
-            placeholder="Type anything here"
-          />
-        </FieldSet>
-      </div>
-
-      <div className="mt2 flex center">
-        <FieldSet legend="Live updated data">
-          <p>
-            Core information, user status, local address book, wallet theme and
-            settings will be fed into your module when your module is
-            initialized and when those data are changed.
-          </p>
-          {!!showingConnections && (
-            <div className="mt1">
-              Core connections:{' '}
-              <strong>
-                {coreInfo ? coreInfo.connections : 'Not connected'}
-              </strong>
+            <TextField
+              label="API Key"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+            />
+            {error && <div style={{ color: 'red' }}>{error}</div>}
+            <div style={{ textAlign: 'right' }}>
+              <Button
+                skin="primary"
+                style={{ marginTop: '1em' }}
+                disabled={!apiKey}
+                onClick={() => handleCredsSubmit(apiKey)}
+              >
+                Save
+              </Button>
             </div>
-          )}
-          <div>
-            User status:{' '}
-            <strong>{userStatus ? 'Logged in' : 'Not logged in'}</strong>
+          </FieldSet>
+          <div style={{ marginTop: 16, marginBottom: '1em', fontSize: 13, color: '#999', textAlign: 'center' }}>
+            If you do not have a Dex-Trade.com API key yet, go{' '}
+            <span className='linkStyle' onClick={() => openInBrowser('https://dex-trade.com/account/api-management')}>here</span>
+            <br />You'll be prompted to log into your Dex-Trade.com account.
+            If you don't have a Dex-Trade.com account yet, go{' '}
+            <span className='linkStyle' onClick={() => openInBrowser('https://dex-trade.com/refcode/qj9c43')}>here</span>.
           </div>
-        </FieldSet>
-      </div>
-
-      <div className="mt2">
-        <FieldSet legend="API calls">
-          <p>
-            You can make API calls from your module to the Nexus Core using{' '}
-            <Button
-              skin="hyperlink"
-              as="a"
-              href="https://github.com/Nexusoft/NexusInterface/blob/master/docs/Modules/nexus-global-variable.md#apicall"
-            >
-              apiCall
-            </Button>{' '}
-            utility function. Click the button below to view blockchain metrics.
-          </p>
-          <Button onClick={viewMetrics} disabled={checkingMetrics}>
-            View blockchain metrics
-          </Button>
-        </FieldSet>
-      </div>
+          <div style={{ marginTop: 16, marginBottom: '1em', fontSize: 13, color: '#999', textAlign: 'center' }}>
+            Your credentials are stored securely and only used locally.
+          </div>
+        </Modal>
+      )}
     </Panel>
   );
 }
