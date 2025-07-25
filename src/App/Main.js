@@ -43,7 +43,9 @@ const {
   }
 } = NEXUS;
 
-const { useState, useRef } = React;
+const useState = React.useState;
+const useRef = React.useRef;
+const useEffect = React.useEffect;
 
 export default function Main() {
   const dispatch = useDispatch();

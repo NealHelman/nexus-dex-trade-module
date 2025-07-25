@@ -1,26 +1,21 @@
 // src/utils/encryption.js
 import CryptoJS from 'crypto-js';
-import { useSelector } from 'react-redux';
 
-
-// Use a combination of user-specific data to create a unique key
-// This ensures each user's data is encrypted with their own key
-function getEncryptionKey() {
-  const userStatus = useSelector((state) => state.nexus.userStatus.genesis);
-  const genesis = useSelector((state) => state.nexus.userStatus.userStatus.genesis);;
-  return CryptoJS.SHA256(genesis);
+// Accept genesis (or whatever unique identifier) as argument
+function getEncryptionKey(genesis) {
+  return CryptoJS.SHA256(genesis).toString();
 }
 
-export function encryptData(data) {
+export function encryptData(data, genesis) {
   if (!data) return data;
-  const key = getEncryptionKey();
+  const key = getEncryptionKey(genesis);
   return CryptoJS.AES.encrypt(data, key).toString();
 }
 
-export function decryptData(encryptedData) {
+export function decryptData(encryptedData, genesis) {
   if (!encryptedData) return encryptedData;
   try {
-    const key = getEncryptionKey();
+    const key = getEncryptionKey(genesis);
     const bytes = CryptoJS.AES.decrypt(encryptedData, key);
     return bytes.toString(CryptoJS.enc.Utf8);
   } catch (error) {

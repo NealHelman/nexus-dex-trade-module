@@ -1,40 +1,36 @@
-// src/middleware/encryptedStorageMiddleware.js
 import { encryptData, decryptData } from '../utils/encryption';
 
-// Fields that should be encrypted
 const ENCRYPTED_FIELDS = ['apiKey'];
 
-function encryptSensitiveFields(state) {
+function encryptSensitiveFields(state, genesis) {
   if (!state.settings) return state;
-  
   const encryptedSettings = { ...state.settings };
-  
+
   ENCRYPTED_FIELDS.forEach(field => {
     if (encryptedSettings[field]) {
-      encryptedSettings[field] = encryptData(encryptedSettings[field]);
+      encryptedSettings[field] = encryptData(encryptedSettings[field], genesis);
     }
   });
-  
+
   return {
     ...state,
     settings: encryptedSettings
   };
 }
 
-function decryptSensitiveFields(state) {
+function decryptSensitiveFields(state, genesis) {
   if (!state.settings) return state;
-  
   const decryptedSettings = { ...state.settings };
-  
+
   ENCRYPTED_FIELDS.forEach(field => {
     if (decryptedSettings[field]) {
-      const decrypted = decryptData(decryptedSettings[field]);
+      const decrypted = decryptData(decryptedSettings[field], genesis);
       if (decrypted !== null) {
         decryptedSettings[field] = decrypted;
       }
     }
   });
-  
+
   return {
     ...state,
     settings: decryptedSettings
@@ -43,35 +39,32 @@ function decryptSensitiveFields(state) {
 
 export const encryptedStorageMiddleware = (selector) => (store) => (next) => (action) => {
   const result = next(action);
-  
-  // Get the state that would be saved
   const state = store.getState();
+  const genesis = state.nexus?.userStatus?.genesis ?? 'default-key';
   const dataToSave = selector(state);
-  
-  // Encrypt sensitive fields before saving
-  const encryptedData = encryptSensitiveFields(dataToSave);
-  
-  // Use the built-in updateStorage with encrypted data
+
+  const encryptedData = encryptSensitiveFields(dataToSave, genesis);
   const { updateStorage } = NEXUS.utilities;
   updateStorage(encryptedData);
-  
+
   return result;
 };
 
-// Middleware to decrypt data when initializing
 export const decryptionMiddleware = (store) => (next) => (action) => {
   if (action.type === 'INITIALIZE' && action.payload.storageData) {
-    // Decrypt the storage data before it goes into the state
+    const state = store.getState();
+    const genesis = state.nexus?.userStatus?.genesis ?? 'default-key';
+
     const decryptedPayload = {
       ...action.payload,
-      storageData: decryptSensitiveFields(action.payload.storageData)
+      storageData: decryptSensitiveFields(action.payload.storageData, genesis)
     };
-    
+
     return next({
       ...action,
       payload: decryptedPayload
     });
   }
-  
+
   return next(action);
 };
