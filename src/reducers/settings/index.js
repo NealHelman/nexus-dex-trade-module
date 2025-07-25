@@ -1,7 +1,8 @@
 import { combineReducers } from 'redux';
 
-import showingConnections from './showingConnections';
+import { setApiKey, setSelectedTab } from './settingKeyData';
 
 export default combineReducers({
-  showingConnections,
+  setApiKey,
+  setSelectedTab
 });

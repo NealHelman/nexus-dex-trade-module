@@ -1,4 +1,6 @@
-import { useSelector } from 'react-redux';
+import { storageMiddleware, stateMiddleware } from 'nexus-module';
+import { useSelector, useDispatch } from 'react-redux';
+import { setApiKey } from 'actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
 import styles from '../Styles/styles.css';
@@ -43,16 +45,6 @@ const {
 
 const { useState, useRef } = React;
 
-// Runtime-only load of storage.json (not part of Webpack static graph)
-function getCurrentStorage() {
-  try {
-    delete require.cache[require.resolve('../../storage.json')];
-    return require('../../storage.json');
-  } catch (e) {
-    return {};
-  }
-}
-
 export default function Main() {
   const [isInitialized, setIsInitialized] = useState(false);
   const userStatus = useSelector((state) => state.nexus.userStatus);
@@ -76,11 +68,13 @@ export default function Main() {
 
   // Ref to track last saved tab to avoid repeated writes
   const lastSavedTabRef = useRef(null);
+  const dispatch = useDispatch();
+  const currentApiKey = useSelector((state) => state.settings.apiKey);
+
 
   const handleCredsSubmit = async (apiKey) => {
     if (!apiKey || isAuthenticated) return;
-    const currentStorage = store.getState();
-    updateStorage({ ...currentStorage, apiKey });
+    dispatch(setApiKey({ apiKey }));
     setIsAuthenticated(true);
     setShowModal(false);
     setSelected('dashboard');
