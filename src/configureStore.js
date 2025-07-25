@@ -1,13 +1,14 @@
 import { createStore, compose, applyMiddleware } from 'redux';
-
 import createReducer from './reducers';
-import { storageMiddleware, stateMiddleware } from 'nexus-module';
+import { stateMiddleware } from 'nexus-module';
+import { encryptedStorageMiddleware, decryptionMiddleware } from './middleware/encryptedStorageMiddleware';
 
 export default function configureStore() {
   //Middlewares will automatically save when the state as changed,
   //ie state.settings will be stored on disk and will save every time state.settings is changed.
   const middlewares = [
-    storageMiddleware(({ settings }) => ({ settings })), //Data saved to disk
+    decryptionMiddleware, // Decrypt on load
+    encryptedStorageMiddleware(({ settings }) => ({ settings })), // Encrypt on save
     stateMiddleware(({ ui }) => ({ ui })), //Data saved to session
   ];
   const enhancers = [applyMiddleware(...middlewares)];

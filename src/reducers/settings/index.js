@@ -1,8 +1,9 @@
 import { combineReducers } from 'redux';
 
-import { setApiKey, setSelectedTab } from './settingKeyData';
+import apiKey from './apiKey';
+import selectedTab from './selectedTab';
 
 export default combineReducers({
-  setApiKey,
-  setSelectedTab
+  apiKey,
+  selectedTab
 });

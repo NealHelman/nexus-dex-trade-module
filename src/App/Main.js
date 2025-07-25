@@ -1,6 +1,6 @@
 import { storageMiddleware, stateMiddleware } from 'nexus-module';
 import { useSelector, useDispatch } from 'react-redux';
-import { setApiKey } from 'actions/actionCreators';
+import { setApiKey, setSelectedTab } from '../actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
 import styles from '../Styles/styles.css';
@@ -46,13 +46,22 @@ const {
 const { useState, useRef } = React;
 
 export default function Main() {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const userStatus = useSelector((state) => state.nexus.userStatus);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [selected, setSelected] = useState('dashboard');
+  const dispatch = useDispatch();
+  
+  // Get data from Redux store instead of localStorage
+  const apiKey = useSelector((state) => state.settings.apiKey);
+  const selected = useSelector((state) => state.settings.selectedTab);
+
   const [showModal, setShowModal] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState(''); // For form input
   const [error, setError] = useState('');
+  const userStatus = useSelector((state) => state.nexus.userStatus);
+  
+    // ***** DEBUGGING *****
+  const entireState = useSelector(state => state);
+  console.log('Full Redux State:', entireState);
 
   const renderCount = useRef(0);
   renderCount.current += 1;
@@ -68,51 +77,31 @@ export default function Main() {
 
   // Ref to track last saved tab to avoid repeated writes
   const lastSavedTabRef = useRef(null);
-  const dispatch = useDispatch();
   const currentApiKey = useSelector((state) => state.settings.apiKey);
 
-
-  const handleCredsSubmit = async (apiKey) => {
-    if (!apiKey || isAuthenticated) return;
-    dispatch(setApiKey({ apiKey }));
+  const handleCredsSubmit = async (apiKeyValue) => {
+    if (!apiKeyValue || isAuthenticated) return;
+    dispatch(setApiKey(apiKeyValue));
     setIsAuthenticated(true);
     setShowModal(false);
-    setSelected('dashboard');
+    dispatch(setSelectedTab('dashboard'));
     showSuccessDialog({ message: 'Your Dex-Trade API key has been saved.' });
   };
 
-  // Initialization logic runs only on mount
   React.useEffect(() => {
-    const currentStorage = getCurrentStorage();
-
-    if (currentStorage.selected) {
-      setSelected(currentStorage.selected);
-      lastSavedTabRef.current = currentStorage.selected; // remember initial tab
-    } else {
-      lastSavedTabRef.current = 'dashboard';
-    }
-
-    if (currentStorage.apiKey) {
+    if (apiKey) {
       setIsAuthenticated(true);
     } else {
       setIsAuthenticated(false);
-      setSelected('settings');
-      lastSavedTabRef.current = 'settings';
+      dispatch(setSelectedTab('settings'));
       setShowModal(true);
     }
-
     setIsInitialized(true);
-  }, []);
+  }, [apiKey, dispatch]);
 
-  // Persist tab changes (only after initialization and only if changed)
-  React.useEffect(() => {
-    if (!isInitialized) return;
-    if (selected !== lastSavedTabRef.current) {
-      const currentStorage = getCurrentStorage();
-      updateStorage({ ...currentStorage, selected });
-      lastSavedTabRef.current = selected;
-    }
-  }, [selected, isInitialized]);
+  const handleTabClick = (tab) => {
+    dispatch(setSelectedTab(tab)); // This will automatically persist
+  };
 
   return (
     <Panel title="Nexus Dex-Trade Module" icon={{ url: 'exchange.svg', id: 'icon' }}>
@@ -121,7 +110,7 @@ export default function Main() {
           <HorizontalTab
             key={tab.key}
             active={selected === tab.key}
-            onClick={() => setSelected(tab.key)}
+            onClick={() => handleTabClick(tab.key)}
           >
             {tab.label}
           </HorizontalTab>
@@ -134,6 +123,7 @@ export default function Main() {
       {selected === 'referral' && <ReferralPage />}
       {selected === 'settings' && <SettingsPage />}
 
+      {/* Modal for API key input */}
       {showModal && !isAuthenticated && (
         <Modal 
           title="Dex-Trade API Key" 
@@ -146,16 +136,16 @@ export default function Main() {
             >
             <TextField
               label="API Key"
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
+              value={tempApiKey}
+              onChange={e => setTempApiKey(e.target.value)}
             />
             {error && <div style={{ color: 'red' }}>{error}</div>}
             <div style={{ textAlign: 'right' }}>
               <Button
                 skin="primary"
                 style={{ marginTop: '1em' }}
-                disabled={!apiKey}
-                onClick={() => handleCredsSubmit(apiKey)}
+                disabled={!tempApiKey}
+                onClick={() => handleCredsSubmit(tempApiKey)}
               >
                 Save
               </Button>
