@@ -1,6 +1,6 @@
 import { storageMiddleware, stateMiddleware } from 'nexus-module';
 import { useSelector, useDispatch } from 'react-redux';
-import { setApiKey, setSelectedTab } from '../actions/actionCreators';
+import { setPublicKey, setPrivateKey, setSelectedTab } from '../actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
 import styles from '../Styles/styles.css';
@@ -51,13 +51,15 @@ export default function Main() {
   const dispatch = useDispatch();
   
   // Get data from Redux store instead of localStorage
-  const apiKey = useSelector((state) => state.settings.apiKey);
+  const publicKey = useSelector((state) => state.settings.publicKey);
+  const privateKey = useSelector((state) => state.settings.privateKey);
   const selected = useSelector((state) => state.settings.selectedTab);
 
-  const [showModal, setShowModal] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState(''); // For form input
+  const [tempPublicKey, setTempPublicKey] = useState('');
+  const [tempPrivateKey, setTempPrivateKey] = useState('');
   const [error, setError] = useState('');
   const [isDonating, setIsDonating] = useState(false);
   const [donationAmount, setDonationAmount ] = useState(0);
@@ -87,25 +89,26 @@ export default function Main() {
   const lastSavedTabRef = useRef(null);
   const currentApiKey = useSelector((state) => state.settings.apiKey);
 
-  const handleCredsSubmit = async (apiKeyValue) => {
-    if (!apiKeyValue || isAuthenticated) return;
-    dispatch(setApiKey(apiKeyValue));
+  const handleCredsSubmit = async (publicKeyValue, privateKeyValue) => {
+    if (!publicKeyValue || !privateKeyValue || isAuthenticated) return;
+    dispatch(setPublicKey(publicKeyValue));
+    dispatch(setPrivateKey(privateKeyValue));
     setIsAuthenticated(true);
-    setShowModal(false);
+    setShowApiKeyModal(false);
     dispatch(setSelectedTab('dashboard'));
-    showSuccessDialog({ message: 'Your Dex-Trade API key has been saved.' });
+    showSuccessDialog({ message: 'Your Dex-Trade API keys have been saved.' });
   };
 
   React.useEffect(() => {
-    if (apiKey) {
+    if (publicKey && privateKey) {
       setIsAuthenticated(true);
     } else {
       setIsAuthenticated(false);
       dispatch(setSelectedTab('settings'));
-      setShowModal(true);
+      setShowApiKeyModal(true);
     }
     setIsInitialized(true);
-  }, [apiKey, dispatch]);
+  }, [publicKey, privateKey, dispatch]);
 
   const handleTabClick = (tab) => {
     dispatch(setSelectedTab(tab)); // This will automatically persist
@@ -231,28 +234,39 @@ export default function Main() {
             {selected === 'settings' && <SettingsPage />}
 
             {/* Modal for API key input */}
-            {showModal && !isAuthenticated && (
+            {showApiKeyModal && !isAuthenticated && (
               <Modal 
                 title="Dex-Trade API Key" 
-                removeModal={() => setShowModal(false)}
+                removeModal={() => setShowApiKeyModal(false)}
                 show
                 >
                 <FieldSet
-                  legend="Enter your Dex-Trade API Key"
+                  legend="Enter your Dex-Trade API Keys"
                   style={{ marginLeft: '1em', marginRight: '1em' }}
                   >
-                  <TextField
-                    label="API Key"
-                    value={tempApiKey}
-                    onChange={e => setTempApiKey(e.target.value)}
-                  />
+                  <div style={{ marginBottom: '15px', color: '#ccc' }}>
+                    Public Key:{' '}
+                    <TextField
+                      label="Public Key"
+                      value={tempPublicKey}
+                      onChange={e => setTempPublicKey(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '15px', color: '#ccc' }}>
+                    Private Key:{' '}
+                    <TextField
+                      label="Private Key"
+                      value={tempPrivateKey}
+                      onChange={e => setTempPrivateKey(e.target.value)}
+                    />
+                  </div>
                   {error && <div style={{ color: 'red' }}>{error}</div>}
                   <div style={{ textAlign: 'right' }}>
                     <Button
                       skin="primary"
                       style={{ marginTop: '1em' }}
-                      disabled={!tempApiKey}
-                      onClick={() => handleCredsSubmit(tempApiKey)}
+                      disabled={!tempPublicKey || !tempPrivateKey}
+                      onClick={() => handleCredsSubmit(tempPublicKey, tempPrivateKey)}
                     >
                       Save
                     </Button>

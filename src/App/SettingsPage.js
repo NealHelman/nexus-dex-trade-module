@@ -1,5 +1,5 @@
 import { useSelector, useDispatch } from 'react-redux';
-import { setApiKey } from '../actions/actionCreators';
+import { setPublicKey, setPrivateKey } from '../actions/actionCreators';
 
 const {
   libraries: {
@@ -20,7 +20,8 @@ const { useState } = React;
 
 export default function SettingsPage() {
   const dispatch = useDispatch();
-  const apiKey = useSelector((state) => state.settings.apiKey);
+  const publicKey = useSelector((state) => state.settings.publicKey);
+  const privateKey = useSelector((state) => state.settings.privateKey);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleResetApiKey = () => {
@@ -28,10 +29,11 @@ export default function SettingsPage() {
   };
 
   const confirmReset = () => {
-    dispatch(setApiKey(''));
+    dispatch(setPublicKey(''));
+    dispatch(setPrivateKey(''));
     setShowConfirmModal(false);
     showSuccessDialog({ 
-      message: 'API key has been reset. You will be prompted to enter a new one.' 
+      message: 'API keys has been reset. You will be prompted to enter a new one.' 
     });
   };
 
@@ -46,10 +48,13 @@ export default function SettingsPage() {
       <FieldSet legend="API Key Management" style={{ marginBottom: '20px' }}>
         <div style={{ padding: '15px' }}>
           <p style={{ marginBottom: '15px', color: '#ccc' }}>
-            Current API Key: {apiKey ? `${apiKey.substring(0, 8)}...` : 'Not set'}
+            Current Public Key: {publicKey ? `${publicKey.substring(0, 8)}...` : 'Not set'}
+          </p>
+          <p style={{ marginBottom: '15px', color: '#ccc' }}>
+            Current Private Key: {privateKey ? `${privateKey.substring(0, 8)}...` : 'Not set'}
           </p>
           <p style={{ marginBottom: '15px', color: '#ccc', fontSize: '14px' }}>
-            Reset your Dex-Trade API key if you need to update it or if you're experiencing authentication issues.
+            Reset your Dex-Trade API keys if you need to update it or if you're experiencing authentication issues.
           </p>
           <div style={{ textAlign: 'center' }}>
             <Button
@@ -65,7 +70,7 @@ export default function SettingsPage() {
                 color: 'black'
               }}
             >
-              Reset API Key
+              Reset API Keys
             </Button>
           </div>
         </div>
@@ -83,7 +88,7 @@ export default function SettingsPage() {
             style={{ marginLeft: '1em', marginRight: '1em' }}
           >
             <p style={{ marginBottom: '15px', color: '#ccc' }}>
-              This will remove your current API key and you'll need to enter a new one to continue using the module.
+              This will remove your current API keys, and you'll need to enter a new one to continue using the module.
             </p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <Button

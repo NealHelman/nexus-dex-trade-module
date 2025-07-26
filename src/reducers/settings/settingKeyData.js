@@ -1,13 +1,19 @@
 import * as TYPE from 'actions/types';
 
 const initialState = {
-  apiKey: '',
+  publicKey: '',
+  privateKey: '',
   selectedTab: 'dashboard',
 };
 
 export default (state = initialState, action) => {
   switch (action.type) {
-    case TYPE.SET_API_KEY:
+    case TYPE.SET_PUBLIC_KEY:
+      return {
+        ...state,
+        ...action.payload,
+      };
+    case TYPE.SET_PRIVATE_KEY:
       return {
         ...state,
         ...action.payload,

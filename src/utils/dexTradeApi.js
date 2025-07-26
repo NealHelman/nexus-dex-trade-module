@@ -8,25 +8,24 @@ const DEX_TRADE_BASE_URL = 'https://api.dex-trade.com';
  * Make authenticated request to Dex-Trade private API
  * @param {string} endpoint - API endpoint (e.g., '/v1/private/account-balances')
  * @param {Object} data - Request payload
- * @param {string} apiKey - User's API key
- * @param {string} apiSecret - User's API secret
+ * @param {string} publicKey - User's public API key
+ * @param {string} privateKey - User's private API key
  * @returns {Promise<Object>} API response data
  */
-export async function makeDexTradePrivateRequest(endpoint, data = {}, apiKey, apiSecret) {
+export async function makeDexTradePrivateRequest(endpoint, data = {}, publicKey, privateKey) {
   try {
     const body = {
       ...data,
       timestamp: Date.now()
     };
 
-    const authSign = generateAuthSign(body, apiSecret);
+    const authSign = generateAuthSign(body, publicKey);
 
-    const response = await proxyRequest({
-      url: `${DEX_TRADE_BASE_URL}${endpoint}`,
+    const response = await proxyRequest(`${DEX_TRADE_BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': apiKey,
+        'X-API-Key': privateKey,
         'X-Auth-Sign': authSign
       },
       data: JSON.stringify(body)
@@ -53,16 +52,12 @@ export async function makeDexTradePrivateRequest(endpoint, data = {}, apiKey, ap
  */
 export async function makeDexTradePublicRequest(endpoint) {
   try {
-    const response = await proxyRequest({
-      url: `${DEX_TRADE_BASE_URL}${endpoint}`,
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    const response = await proxyRequest(`${DEX_TRADE_BASE_URL}${endpoint}`, {
+      method: 'GET'
     });
 
     if (!response.success) {
-      throw new Error(response.message || 'API request failed');
+      throw new Error(response.data.message || 'API request failed');
     }
 
     return response.data;
@@ -74,26 +69,25 @@ export async function makeDexTradePublicRequest(endpoint) {
     throw error;
   }
 }
-
 /**
  * Get account balances
  */
-export async function getAccountBalances(apiKey, apiSecret) {
-  return makeDexTradePrivateRequest('/v1/private/balances', {}, apiKey, apiSecret);
+export async function getAccountBalances(publicKey, privateKey) {
+  return makeDexTradePrivateRequest('/v1/private/balances', {}, publicKey, privateKey);
 }
 
 /**
  * Get recent orders
  */
-export async function getRecentOrders(apiKey, apiSecret, limit = 10) {
-  return makeDexTradePrivateRequest('/v1/private/history', { limit }, apiKey, apiSecret);
+export async function getRecentOrders(publicKey, privateKey, limit = 10) {
+  return makeDexTradePrivateRequest('/v1/private/history', { limit }, publicKey, privateKey);
 }
 
 /**
  * Get market ticker data
  */
-export async function getMarketTicker(pair = 'NXSUSDT') {
-  return makeDexTradePublicRequest(`/v1/public/ticker?${pair}`);
+export async function getMarketTicker(pair) {
+  return makeDexTradePublicRequest(`/v1/public/ticker?pair=${pair}`);
 }
 
 /**

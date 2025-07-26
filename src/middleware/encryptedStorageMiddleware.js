@@ -1,6 +1,6 @@
 import { encryptData, decryptData, isEncrypted } from '../utils/encryption';
 
-const ENCRYPTED_FIELDS = ['apiKey'];
+const ENCRYPTED_FIELDS = ['publicKey', 'privateKey'];
 
 function encryptSensitiveFields(state, genesis) {
   if (!state.settings) return state;
@@ -51,16 +51,21 @@ export const decryptionMiddleware = (store) => (next) => (action) => {
     const state = store.getState();
     const genesis = state.nexus?.userStatus?.genesis ?? 'default-key';
 
+    // Decrypt the storage data BEFORE it goes into the state
+    const decryptedStorageData = decryptSensitiveFields(action.payload.storageData, genesis);
+
     const decryptedPayload = {
       ...action.payload,
-      storageData: decryptSensitiveFields(action.payload.storageData, genesis)
+      storageData: decryptedStorageData
     };
+
+    console.log('Decrypted storage data:', decryptedStorageData);
 
     return next({
       ...action,
       payload: decryptedPayload
     });
   }
-
+  
   return next(action);
 };

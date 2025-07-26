@@ -19,7 +19,8 @@ const {
 const { useState, useEffect } = React;
 
 export default function DashboardPage() {
-  const apiKey = useSelector((state) => state.settings.apiKey);
+  const publicKey = useSelector((state) => state.settings.publicKey);
+  const privateKey = useSelector((state) => state.settings.privateKey);
   const [balances, setBalances] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [marketData, setMarketData] = useState({});
@@ -27,15 +28,14 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const loadDashboardData = async () => {
-    if (!apiKey) return;
+    if (!publicKey || !privateKey) return;
     
     setLoading(true);
     try {
-      // Load balances, recent orders, and market data in parallel
       const [balancesData, ordersData, tickerData] = await Promise.all([
-        getAccountBalances(apiKey, apiSecret),
-        getRecentOrders(apiKey, apiSecret, 5),
-        getMarketTicker('NXS_BTC').catch(() => null) // Don't fail if ticker unavailable
+        //getAccountBalances(privateKey, publicKey),
+        //getRecentOrders(privateKey, publicKey, 5),
+        getMarketTicker('BTCUSDT').catch(() => null)
       ]);
 
       setBalances(balancesData?.balances || []);
@@ -52,10 +52,11 @@ export default function DashboardPage() {
   useEffect(() => {
     loadDashboardData();
     
+    // ***** TURN BACK ON *****
     // Auto-refresh every 30 seconds
-    const interval = setInterval(loadDashboardData, 30000);
-    return () => clearInterval(interval);
-  }, [apiKey]);
+    //const interval = setInterval(loadDashboardData, 30000);
+    //return () => clearInterval(interval);
+}, [publicKey, privateKey]);
 
   const formatBalance = (balance) => {
     const num = parseFloat(balance);

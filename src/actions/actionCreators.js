@@ -1,8 +1,13 @@
 import * as TYPE from './types';
 
-export const setApiKey = (apiKey) => ({
-  type: TYPE.SET_API_KEY,
-  payload: apiKey,
+export const setPublicKey = (publicKey) => ({
+  type: TYPE.SET_PUBLIC_KEY,
+  payload: publicKey,
+});
+
+export const setPrivateKey = (privateKey) => ({
+  type: TYPE.SET_PRIVATE_KEY,
+  payload: privateKey,
 });
 
 export const setSelectedTab = (tab) => ({
