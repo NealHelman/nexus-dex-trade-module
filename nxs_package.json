@@ -7,7 +7,12 @@
   "type": "app",
   "entry": "dist/index.html",
   "icon": "dist/exchange.svg",
-  "files": ["dist/index.html", "dist/exchange.svg", "dist/js/app.js"],
+  "files": [
+    "dist/index.html",
+    "dist/exchange.svg",
+    "dist/js/app.js",
+    "dist/Neal.png"
+    ],
   "author": {
     "name": "Neal Helman",
     "email": "neal.helman@nexus.io"

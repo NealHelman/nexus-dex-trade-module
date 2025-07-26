@@ -1,4 +1,4 @@
-import { encryptData, decryptData } from '../utils/encryption';
+import { encryptData, decryptData, isEncrypted } from '../utils/encryption';
 
 const ENCRYPTED_FIELDS = ['apiKey'];
 
@@ -7,15 +7,13 @@ function encryptSensitiveFields(state, genesis) {
   const encryptedSettings = { ...state.settings };
 
   ENCRYPTED_FIELDS.forEach(field => {
-    if (encryptedSettings[field]) {
-      encryptedSettings[field] = encryptData(encryptedSettings[field], genesis);
+    const val = encryptedSettings[field];
+    if (val && !isEncrypted(val)) {
+      encryptedSettings[field] = encryptData(val, genesis);
     }
   });
 
-  return {
-    ...state,
-    settings: encryptedSettings
-  };
+  return { ...state, settings: encryptedSettings };
 }
 
 function decryptSensitiveFields(state, genesis) {
@@ -23,18 +21,16 @@ function decryptSensitiveFields(state, genesis) {
   const decryptedSettings = { ...state.settings };
 
   ENCRYPTED_FIELDS.forEach(field => {
-    if (decryptedSettings[field]) {
-      const decrypted = decryptData(decryptedSettings[field], genesis);
+    const val = decryptedSettings[field];
+    if (val && isEncrypted(val)) {
+      const decrypted = decryptData(val, genesis);
       if (decrypted !== null) {
         decryptedSettings[field] = decrypted;
       }
     }
   });
 
-  return {
-    ...state,
-    settings: decryptedSettings
-  };
+  return { ...state, settings: decryptedSettings };
 }
 
 export const encryptedStorageMiddleware = (selector) => (store) => (next) => (action) => {

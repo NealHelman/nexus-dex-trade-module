@@ -23,3 +23,8 @@ export function decryptData(encryptedData, genesis) {
     return null;
   }
 }
+
+export function isEncrypted(value) {
+  // Example: check for Base64-like structure of AES output
+  return typeof value === 'string' && /^[A-Za-z0-9+/=]+$/.test(value) && value.length % 4 === 0;
+}
