@@ -16,26 +16,29 @@ export async function makeDexTradePrivateRequest(endpoint, data = {}, publicKey,
   try {
     const body = {
       ...data,
-      timestamp: Date.now()
+      request_id: Date.now().toString() // This was missing!
     };
 
     const authSign = generateAuthSign(body, publicKey);
 
+    console.log('makeDexTradePrivateRequest body:', body); // Debug log to verify request_id is there
+    console.log('makeDexTradePrivateRequest: ', `${DEX_TRADE_BASE_URL}${endpoint}`);
+    
     const response = await proxyRequest(`${DEX_TRADE_BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': privateKey,
-        'X-Auth-Sign': authSign
+        'login-token': privateKey,
+        'x-auth-sign': authSign
       },
       data: JSON.stringify(body)
     });
 
-    if (!response.success) {
+    if (!response.data.status) {
       throw new Error(response.message || 'API request failed');
     }
 
-    return response.data;
+    return response.data.data;
   } catch (error) {
     console.error('Dex-Trade API Error:', error);
     showErrorDialog({ 
@@ -44,7 +47,6 @@ export async function makeDexTradePrivateRequest(endpoint, data = {}, publicKey,
     throw error;
   }
 }
-
 /**
  * Make public request to Dex-Trade API (no authentication needed)
  * @param {string} endpoint - API endpoint (e.g., '/v1/public/ticker')
@@ -52,15 +54,13 @@ export async function makeDexTradePrivateRequest(endpoint, data = {}, publicKey,
  */
 export async function makeDexTradePublicRequest(endpoint) {
   try {
-    const response = await proxyRequest(`${DEX_TRADE_BASE_URL}${endpoint}`, {
-      method: 'GET'
-    });
+    const response = await proxyRequest(`${DEX_TRADE_BASE_URL}${endpoint}`, { method: 'GET' });
 
-    if (!response.success) {
+    if (!response.data.status) {
       throw new Error(response.data.message || 'API request failed');
     }
 
-    return response.data;
+    return response.data.data;
   } catch (error) {
     console.error('Dex-Trade Public API Error:', error);
     showErrorDialog({ 

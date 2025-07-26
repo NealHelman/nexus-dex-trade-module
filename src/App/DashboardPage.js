@@ -1,5 +1,6 @@
 import { useSelector } from 'react-redux';
 import { getAccountBalances, getRecentOrders, getMarketTicker } from '../utils/dexTradeApi';
+import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
 
 const {
   libraries: {
@@ -19,8 +20,8 @@ const {
 const { useState, useEffect } = React;
 
 export default function DashboardPage() {
-  const publicKey = useSelector((state) => state.settings.publicKey);
-  const privateKey = useSelector((state) => state.settings.privateKey);
+  const publicKey = useSelector(getDecryptedPublicKey);
+  const privateKey = useSelector(getDecryptedPrivateKey);
   const [balances, setBalances] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [marketData, setMarketData] = useState({});
@@ -33,8 +34,8 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const [balancesData, ordersData, tickerData] = await Promise.all([
-        //getAccountBalances(privateKey, publicKey),
-        //getRecentOrders(privateKey, publicKey, 5),
+        getAccountBalances(privateKey, publicKey),
+        getRecentOrders(privateKey, publicKey, 5),
         getMarketTicker('BTCUSDT').catch(() => null)
       ]);
 
@@ -142,23 +143,25 @@ export default function DashboardPage() {
 
       {/* Market Info */}
       {marketData.pair && (
-        <FieldSet legend="NXS Market Price" style={{ marginBottom: '20px' }}>
-          <div style={{ padding: '15px', display: 'flex', gap: '20px' }}>
+        <FieldSet legend={`${marketData.pair} Market Data`} style={{ marginBottom: '20px' }}>
+          <div style={{ padding: '15px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
             <div style={{ color: '#ccc' }}>
-              <strong>Last Price:</strong> {formatPrice(marketData.last || 0)} BTC
+              <strong>Last Price:</strong> {formatPrice(marketData.last || 0)}
             </div>
             <div style={{ color: '#ccc' }}>
-              <strong>24h Change:</strong> 
-              <span style={{ 
-                color: parseFloat(marketData.change) >= 0 ? '#4CAF50' : '#f44336',
-                marginLeft: '5px'
-              }}>
-                {marketData.change ? `${parseFloat(marketData.change).toFixed(2)}%` : 'N/A'}
-              </span>
+              <strong>High (24h):</strong> {formatPrice(marketData.high || 0)}
             </div>
             <div style={{ color: '#ccc' }}>
-              <strong>24h Volume:</strong> {formatBalance(marketData.volume || 0)} NXS
+              <strong>Low (24h):</strong> {formatPrice(marketData.low || 0)}
             </div>
+            <div style={{ color: '#ccc' }}>
+              <strong>24h Volume:</strong> {formatBalance(marketData.volume_24h || 0)}
+            </div>
+            {marketData.close !== undefined && (
+              <div style={{ color: '#ccc' }}>
+                <strong>Close:</strong> {formatPrice(marketData.close)}
+              </div>
+            )}
           </div>
         </FieldSet>
       )}

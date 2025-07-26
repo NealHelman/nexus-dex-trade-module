@@ -1,5 +1,5 @@
 import { useSelector, useDispatch } from 'react-redux';
-import { setPublicKey, setPrivateKey } from '../actions/actionCreators';
+import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
 
 const {
   libraries: {
@@ -20,8 +20,8 @@ const { useState } = React;
 
 export default function SettingsPage() {
   const dispatch = useDispatch();
-  const publicKey = useSelector((state) => state.settings.publicKey);
-  const privateKey = useSelector((state) => state.settings.privateKey);
+  const publicKey = useSelector(getDecryptedPublicKey);
+  const privateKey = useSelector(getDecryptedPrivateKey);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleResetApiKey = () => {

@@ -1,6 +1,7 @@
 import { storageMiddleware, stateMiddleware } from 'nexus-module';
 import { useSelector, useDispatch } from 'react-redux';
-import { setPublicKey, setPrivateKey, setSelectedTab } from '../actions/actionCreators';
+import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
+import { setSelectedTab } from '../actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
 import styles from '../Styles/styles.css';
@@ -51,8 +52,8 @@ export default function Main() {
   const dispatch = useDispatch();
   
   // Get data from Redux store instead of localStorage
-  const publicKey = useSelector((state) => state.settings.publicKey);
-  const privateKey = useSelector((state) => state.settings.privateKey);
+  const publicKey = useSelector(getDecryptedPublicKey);
+  const privateKey = useSelector(getDecryptedPrivateKey);
   const selected = useSelector((state) => state.settings.selectedTab);
 
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);

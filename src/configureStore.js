@@ -26,7 +26,15 @@ export default function configureStore() {
 
   if (module.hot) {
     module.hot.accept('./reducers', () => {
+      // Preserve the current state when replacing the reducer
+      const currentState = store.getState();
       store.replaceReducer(createReducer());
+      
+      // Restore the preserved state
+      store.dispatch({
+        type: '@@REDUX_HMR_RESTORE_STATE',
+        payload: currentState
+      });
     });
   }
 
