@@ -38,6 +38,8 @@ export default (state = initialState, action) => {
         ...state,
         ...action.payload,
       };
+    case '@@REDUX_HMR_RESTORE_STATE':
+      return action.payload.settings || state;
     default:
       return state;
   }

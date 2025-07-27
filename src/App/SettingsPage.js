@@ -1,5 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
+import { setPublicKey, setPrivateKey } from '../actions/actionCreators';
 
 const {
   libraries: {

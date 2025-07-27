@@ -14,12 +14,18 @@ function collectSortedValues(obj) {
 
 /**
  * Generate X-Auth-Sign for Dex-Trade private API.
- * @param {Object} body - The request body.
- * @param {string} secret - The API secret.
+ * @param {Object} body - The request body (should already include request_id).
+ * @param {string} secret - The API private key.
  * @returns {string} The sha256 hash hex string.
  */
 export function generateAuthSign(body, secret) {
+  
+  const sortedKeys = Object.keys(body).sort();
   const values = collectSortedValues(body);
-  const payload = values.join('') + secret;
-  return sha256(payload).toString();
+  const valuesString = values.join('');
+  const payload = valuesString + secret;
+  
+  const hash = sha256(payload).toString();
+  
+  return hash;
 }

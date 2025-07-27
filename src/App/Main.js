@@ -1,6 +1,7 @@
 import { storageMiddleware, stateMiddleware } from 'nexus-module';
 import { useSelector, useDispatch } from 'react-redux';
 import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
+import { setPublicKey, setPrivateKey } from '../actions/actionCreators';
 import { setSelectedTab } from '../actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';

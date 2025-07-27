@@ -1,6 +1,7 @@
 import { useSelector } from 'react-redux';
-import { getAccountBalances, getRecentOrders, getMarketTicker } from '../utils/dexTradeApi';
+import { getAccountBalances, getRecentOrders, getMarketTicker, getMarkets } from '../utils/dexTradeApi';
 import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
+import { StyledDropdownWrapper, StyledSelect, ModalFooterBar, ModalButton, StyledTextField, StyledTextArea } from '../Styles/StyledComponents';
 
 const {
   libraries: {
@@ -9,7 +10,7 @@ const {
   components: {
     Button,
     Panel,
-    FieldSet,
+    FieldSet
   },
   utilities: {
     showErrorDialog,
@@ -25,21 +26,64 @@ export default function DashboardPage() {
   const [balances, setBalances] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [marketData, setMarketData] = useState({});
+  const [markets, setMarkets] = useState([]);
+  const [selectedPair, setSelectedPair] = useState('BTCUSDT');
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  const loadMarketsData = async () => {
+    try {
+      const marketsData = await getMarkets();
+      console.log('marketsData: ', marketsData);
+      setMarkets(marketsData || []);
+      
+      // Set default selected pair if not already set and markets are available
+      if (marketsData && marketsData.length > 0 && !selectedPair) {
+        setSelectedPair(marketsData[0].pair);
+      }
+    } catch (error) {
+      console.error('Failed to load markets data:', error);
+    }
+  };
+
   const loadDashboardData = async () => {
     if (!publicKey || !privateKey) return;
+    const token = publicKey;
+    const secret = privateKey;
     
     setLoading(true);
     try {
       const [balancesData, ordersData, tickerData] = await Promise.all([
-        getAccountBalances(privateKey, publicKey),
-        getRecentOrders(privateKey, publicKey, 5),
+        getAccountBalances(token, secret),
+        getRecentOrders(token, secret, 5),
         getMarketTicker('BTCUSDT').catch(() => null)
       ]);
+      
+      console.log('balancesData: ', balancesData);
 
-      setBalances(balancesData?.balances || []);
+      // Filter and process balances data
+      const processedBalances = balancesData?.list
+        ? balancesData.list
+            .filter(item => {
+              // Check if there's any balance (available or total)
+              const hasBalance = 
+                (item.balance_available && parseFloat(item.balance_available) > 0) ||
+                (item.balance && parseFloat(item.balance) > 0) ||
+                (item.balances?.available && parseFloat(item.balances.available) > 0) ||
+                (item.balances?.total && parseFloat(item.balances.total) > 0);
+              return hasBalance;
+            })
+            .map(item => ({
+              // Standardize the data structure for easier use in the UI
+              currency: item.currency?.iso3 || item.currency?.name || 'Unknown',
+              currencyName: item.currency?.name || item.currency?.iso3 || 'Unknown',
+              available: item.balances?.available || item.balance_available || '0',
+              locked: item.balances?.locked || '0',
+              total: item.balances?.total || item.balance || '0'
+            }))
+        : [];
+
+      setBalances(processedBalances);
       setRecentOrders(ordersData?.orders || []);
       setMarketData(tickerData || {});
       setLastUpdated(new Date().toLocaleTimeString());
@@ -50,14 +94,23 @@ export default function DashboardPage() {
     }
   };
 
+  // Load markets on component mount
+  useEffect(() => {
+    loadMarketsData();
+  }, []);
+
   useEffect(() => {
     loadDashboardData();
     
-    // ***** TURN BACK ON *****
+    // ***** TODO: TURN BACK ON *****
     // Auto-refresh every 30 seconds
     //const interval = setInterval(loadDashboardData, 30000);
     //return () => clearInterval(interval);
 }, [publicKey, privateKey]);
+
+  const handlePairChange = (newPair) => {
+    setSelectedPair(newPair);
+  };
 
   const formatBalance = (balance) => {
     const num = parseFloat(balance);
@@ -68,6 +121,12 @@ export default function DashboardPage() {
     const num = parseFloat(price);
     return num.toFixed(8);
   };
+
+  // Create dropdown options from markets data
+  const marketOptions = markets.map(market => ({
+    value: market.pair,
+    label: `${market.pair} (${market.base}/${market.quote})`
+  }));
 
   if (loading && !balances.length) {
     return (
@@ -110,9 +169,7 @@ export default function DashboardPage() {
         <div style={{ padding: '15px' }}>
           {balances.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-              {balances
-                .filter(balance => parseFloat(balance.available) > 0 || parseFloat(balance.locked) > 0)
-                .map(balance => (
+              {balances.map((balance, index) => (
                 <div key={balance.currency} style={{ 
                   padding: '12px', 
                   backgroundColor: 'rgba(0, 183, 250, 0.1)', 
@@ -122,6 +179,9 @@ export default function DashboardPage() {
                   <div style={{ fontWeight: 'bold', color: '#00b7fa', marginBottom: '5px' }}>
                     {balance.currency}
                   </div>
+                  <div style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>
+                    {balance.currencyName}
+                  </div>
                   <div style={{ fontSize: '14px', color: '#ccc' }}>
                     Available: {formatBalance(balance.available)}
                   </div>
@@ -130,6 +190,9 @@ export default function DashboardPage() {
                       Locked: {formatBalance(balance.locked)}
                     </div>
                   )}
+                  <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                    Total: {formatBalance(balance.total)}
+                  </div>
                 </div>
               ))}
             </div>
@@ -142,29 +205,78 @@ export default function DashboardPage() {
       </FieldSet>
 
       {/* Market Info */}
-      {marketData.pair && (
-        <FieldSet legend={`${marketData.pair} Market Data`} style={{ marginBottom: '20px' }}>
-          <div style={{ padding: '15px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-            <div style={{ color: '#ccc' }}>
-              <strong>Last Price:</strong> {formatPrice(marketData.last || 0)}
-            </div>
-            <div style={{ color: '#ccc' }}>
-              <strong>High (24h):</strong> {formatPrice(marketData.high || 0)}
-            </div>
-            <div style={{ color: '#ccc' }}>
-              <strong>Low (24h):</strong> {formatPrice(marketData.low || 0)}
-            </div>
-            <div style={{ color: '#ccc' }}>
-              <strong>24h Volume:</strong> {formatBalance(marketData.volume_24h || 0)}
-            </div>
-            {marketData.close !== undefined && (
+      <FieldSet legend="Market Data" style={{ marginBottom: '20px' }}>
+        <div style={{ padding: '15px' }}>
+          {/* Market Pair Selector */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <StyledDropdownWrapper label="Trading Pair" style={{ minWidth: 250 }}>
+              <StyledSelect 
+                value={selectedPair} 
+                onChange={(e) => handlePairChange(e.target.value)}
+              >
+                <option value="">Select a trading pair...</option>
+                {markets.map(market => (
+                  <option key={market.id} value={market.pair}>
+                    {market.pair} ({market.base}/{market.quote})
+                  </option>
+                ))}
+              </StyledSelect>
+            </StyledDropdownWrapper>
+          </div>
+
+          {/* Market Data Display */}
+          <div>
+            <h3 style={{ color: '#00b7fa', textAlign: 'center', marginBottom: '15px' }}>
+              {selectedPair ? `${selectedPair} Market Data` : 'Market Data'}
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
               <div style={{ color: '#ccc' }}>
-                <strong>Close:</strong> {formatPrice(marketData.close)}
+                <strong>Last Price:</strong>
+                {selectedPair && marketData && (
+                  <React.Fragment>
+                    <br />{formatPrice(marketData.last || 0)}
+                  </React.Fragment>
+                )}
+              </div>
+              <div style={{ color: '#ccc' }}>
+                <strong>High (24h):</strong>
+                {selectedPair && marketData && (
+                  <React.Fragment>
+                    <br />{formatPrice(marketData.high || 0)}
+                  </React.Fragment>
+                )}
+              </div>
+              <div style={{ color: '#ccc' }}>
+                <strong>Low (24h):</strong>
+                {selectedPair && marketData && (
+                  <React.Fragment>
+                    <br />{formatPrice(marketData.low || 0)}
+                  </React.Fragment>
+                )}
+              </div>
+              <div style={{ color: '#ccc' }}>
+                <strong>24h Volume:</strong>
+                {selectedPair && marketData && (
+                  <React.Fragment>
+                    <br />{formatBalance(marketData.volume_24H || 0)}
+                  </React.Fragment>
+                )}
+              </div>
+              {selectedPair && marketData && marketData.close !== undefined && marketData.close > 0 && (
+                <div style={{ color: '#ccc' }}>
+                  <strong>Close:</strong>
+                  <br />{formatPrice(marketData.close)}
+                </div>
+              )}
+            </div>
+            {!selectedPair && (
+              <div style={{ color: '#888', textAlign: 'center', padding: '20px', marginTop: '10px' }}>
+                Select a trading pair to view market data
               </div>
             )}
           </div>
-        </FieldSet>
-      )}
+        </div>
+      </FieldSet>
 
       {/* Quick Actions */}
       <FieldSet legend="Quick Actions" style={{ marginBottom: '20px' }}>
@@ -176,7 +288,8 @@ export default function DashboardPage() {
               padding: '10px 20px',
               backgroundColor: '#00b7fa',
               border: 'none',
-              borderRadius: '4px'
+              borderRadius: '4px',
+              color: 'black'
             }}
           >
             Quick Trade
@@ -213,7 +326,7 @@ export default function DashboardPage() {
       {/* Recent Orders */}
       <FieldSet legend="Recent Orders" style={{ marginBottom: '20px' }}>
         <div style={{ padding: '15px' }}>
-          {recentOrders.length > 0 ? (
+          {recentOrders && recentOrders.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
@@ -228,15 +341,15 @@ export default function DashboardPage() {
                 <tbody>
                   {recentOrders.slice(0, 5).map((order, index) => (
                     <tr key={index} style={{ borderBottom: '1px solid #222' }}>
-                      <td style={{ padding: '8px', color: '#ccc' }}>{order.pair}</td>
+                      <td style={{ padding: '8px', color: '#ccc' }}>{order[0].pair}</td>
                       <td style={{ 
                         padding: '8px', 
                         color: order.side === 'buy' ? '#4CAF50' : '#f44336' 
                       }}>
                         {order.side}
                       </td>
-                      <td style={{ padding: '8px', color: '#ccc' }}>{formatBalance(order.amount)}</td>
-                      <td style={{ padding: '8px', color: '#ccc' }}>{formatPrice(order.price)}</td>
+                      <td style={{ padding: '8px', color: '#ccc' }}>{formatBalance(order[0].amount)}</td>
+                      <td style={{ padding: '8px', color: '#ccc' }}>{formatPrice(order[0].price)}</td>
                       <td style={{ padding: '8px', color: '#ccc' }}>{order.status}</td>
                     </tr>
                   ))}
