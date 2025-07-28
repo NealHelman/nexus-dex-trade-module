@@ -100,9 +100,17 @@ export default function TradePage() {
     // Set volume by percentage (based on buy/sell)
     const setVolumeByPercent = pct => {
         if (side === 0) { // Buy
-            setVolume(maxBuyVolume > 0 ? (maxBuyVolume * pct).toFixed(8) : 0);
+            if (maxBuyVolume > 0) {
+                setVolume(Number((maxBuyVolume * pct).toFixed(8)));
+            } else {
+                setVolume(0);
+            }
         } else { // Sell
-            setVolume(maxSellVolume > 0 ? (maxSellVolume * pct).toFixed(8) : 0);
+            if (maxSellVolume > 0) {
+                setVolume(Number((maxSellVolume * pct).toFixed(8)));
+            } else {
+                setVolume(0);
+            }
         }
     };
 
