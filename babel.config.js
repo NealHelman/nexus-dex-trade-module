@@ -18,6 +18,10 @@ module.exports = function (api) {
     presets: [
       ['@babel/preset-env', { targets: browserslistQuery }],
       ['@babel/preset-react', { development, runtime: 'automatic' }],
+      ['@babel/preset-typescript', { 
+        allowNamespaces: true,
+        allowDeclareFields: true
+      }],
     ],
     plugins: [
       [

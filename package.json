@@ -8,6 +8,7 @@
     "@babel/plugin-transform-react-constant-elements": "^7.27.1",
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
     "@babel/register": "^7.27.1",
     "babel-loader": "^10.0.0",
     "babel-plugin-dev-expression": "^0.2.3",
@@ -17,6 +18,7 @@
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
     "style-loader": "^4.0.0",
+    "typescript": "^5.8.3",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2"
@@ -27,9 +29,12 @@
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
+    "jotai": "^2.12.5",
     "nexus-module": "^1.1.11",
+    "qrcode": "^1.5.4",
     "react-redux": "^8.0.2",
     "redux": "^4.2.0",
-    "redux-thunk": "^3.1.0"
+    "redux-thunk": "^3.1.0",
+    "zod": "^4.0.10"
   }
 }
