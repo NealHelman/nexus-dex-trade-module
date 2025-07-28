@@ -11,7 +11,6 @@ const {
   },
   components: {
     Button,
-    Panel,
     FieldSet,
     TextField
   },
@@ -277,7 +276,7 @@ export default function DepositWithdrawPage() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: 'auto' }}>
-      <h2 style={{ color: '#00b7fa', marginBottom: '20px' }}>Deposit & Withdraw</h2>
+      <h2 style={{ color: '#00b7fa', marginBottom: '20px', textAlign: 'center' }}>Deposit & Withdraw</h2>
 
       {/* Deposits Section */}
       <FieldSet legend="Deposit Funds" style={{ marginBottom: '30px' }}>
