@@ -36,7 +36,14 @@ export async function makeDexTradePrivateRequest(endpoint, data = {}, token, sec
     const authSign = generateAuthSign(data, secret);
     console.log('Generated auth sign:', authSign.substring(0, 20) + '...');
     
-    const response = await proxyRequest(`${DEX_TRADE_BASE_URL}${DEX_TRADE_PRIVATE_ADDON}${endpoint}`, {
+    let url = '';
+    if (endpoint.substr(0,4) === '/v1/') {
+        url = `${DEX_TRADE_BASE_URL}${endpoint}`;
+    } else {
+      url = `${DEX_TRADE_BASE_URL}${DEX_TRADE_PRIVATE_ADDON}${endpoint}`;
+    }
+    
+    const response = await proxyRequest(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -146,7 +153,7 @@ export const initiateWithdrawal = async (token, secret, iso, amount, toAddress) 
     to_address: toAddress
   };
   
-  return await makeDexTradePrivateRequest('withdraw', body, token, secret);
+  return await makeDexTradePrivateRequest('/v1/withdraw', body, token, secret);
 };
 
 /**
@@ -157,7 +164,7 @@ export const sendWithdrawalPin = async (token, secret, withdrawalId) => {
     id: withdrawalId
   };
   
-  return await makeDexTradePrivateRequest('withdraw/send-pin', body, token, secret);
+  return await makeDexTradePrivateRequest('/v1/withdraw/send-pin', body, token, secret);
 };
 
 /**
@@ -174,7 +181,7 @@ export const confirmWithdrawal = async (token, secret, withdrawalId, emailPin, g
     body.google_pin = googlePin;
   }
   
-  return await makeDexTradePrivateRequest('withdraw/confirm-code', body, token, secret);
+  return await makeDexTradePrivateRequest('/v1/withdraw/confirm-code', body, token, secret);
 };
 
 /**
@@ -185,12 +192,7 @@ export const getWithdrawalDetails = async (token, secret, withdrawalId) => {
     id: withdrawalId
   };
   
-  return await makeDexTradePrivateRequest('withdraw/view', body, token, secret);
-};
-
-// Get supported currencies
-export const getSupportedCurrencies = async (token, secret) => {
-  return await makeDexTradePrivateRequest('currencies', {}, token, secret);
+  return await makeDexTradePrivateRequest('/v1/withdraw/view', body, token, secret);
 };
 
 // Get available currencies from the public markets endpoint
