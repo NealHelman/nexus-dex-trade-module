@@ -39,6 +39,11 @@ export const encryptedStorageMiddleware = (selector) => (store) => (next) => (ac
   const genesis = state.nexus?.userStatus?.genesis ?? 'default-key';
   const dataToSave = selector(state);
 
+  // Don't save to storage when the runtime middleware is just decrypting for display
+  if (action.type === 'UPDATE_DECRYPTED_SETTINGS') {
+    return result;
+  }
+
   const encryptedData = encryptSensitiveFields(dataToSave, genesis);
   const { updateStorage } = NEXUS.utilities;
   updateStorage(encryptedData);
