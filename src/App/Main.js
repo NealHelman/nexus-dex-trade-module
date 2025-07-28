@@ -6,6 +6,7 @@ import { setSelectedTab } from '../actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
 import styles from '../Styles/styles.css';
+import Panel from '../shared/components/Panel.js';
 
 import DashboardPage from './DashboardPage';
 import TradePage from './TradePage';
@@ -22,8 +23,8 @@ const {
   },
   components: {
     Button,
+    Icon,
     Modal,
-    Panel,
     Dropdown,
     FieldSet,
     TextField,
@@ -193,6 +194,7 @@ export default function Main() {
     <Panel 
       title="Nexus Dex-Trade Module" 
       icon={{ url: 'exchange.svg', id: 'icon' }}
+      allowStickyFooter={true}
       style={{ 
         // Override the PanelWrapper's padding
         padding: '30px 10% 0 10%', // Remove bottom padding from wrapper
@@ -201,108 +203,107 @@ export default function Main() {
         flexDirection: 'column'
       }}
     >
-      {/* Content that respects the Panel's padding */}
+      {/* Content area that takes available space */}
       <div style={{ 
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        // Counteract PanelBody's padding and extend to true bottom
-        margin: '-20px -30px -20px -30px', // Negative margins to extend beyond PanelBody padding
-        padding: '20px 30px 0 30px' // Restore content padding, no bottom
+        flex: 1, 
+        overflow: 'auto',
+        padding: '0 0 10px 0' // Small space before footer
       }}>
-        {/* Scrollable content area */}
-        <div style={{ 
-          flex: 1, 
-          overflowY: 'auto',
-          paddingBottom: '10px' // Small space before footer
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          background: '#18181c', // match your app BG
+          boxShadow: '0 2px 4px 0 rgba(0,0,0,0.12)'
         }}>
-      
-            <HorizontalTab.TabBar>
-              {TABS.map(tab => (
-                <HorizontalTab
-                  key={tab.key}
-                  active={selected === tab.key}
-                  onClick={() => handleTabClick(tab.key)}
-                >
-                  {tab.label}
-                </HorizontalTab>
-              ))}
-            </HorizontalTab.TabBar>
-
-            {selected === 'dashboard' && <DashboardPage />}
-            {selected === 'trade' && <TradePage />}
-            {selected === 'deposit' && <DepositWithdrawPage />}
-            {selected === 'referral' && <ReferralPage />}
-            {selected === 'settings' && <SettingsPage />}
-
-            {/* Modal for API key input */}
-            {showApiKeyModal && !isAuthenticated && (
-              <Modal 
-                title="Dex-Trade API Key" 
-                removeModal={() => setShowApiKeyModal(false)}
-                show
-                >
-                <FieldSet
-                  legend="Enter your Dex-Trade API Keys"
-                  style={{ marginLeft: '1em', marginRight: '1em' }}
-                  >
-                  <div style={{ marginBottom: '15px', color: '#ccc' }}>
-                    Public Key:{' '}
-                    <TextField
-                      label="Public Key"
-                      value={tempPublicKey}
-                      onChange={e => setTempPublicKey(e.target.value)}
-                    />
-                  </div>
-                  <div style={{ marginBottom: '15px', color: '#ccc' }}>
-                    Private Key:{' '}
-                    <TextField
-                      label="Private Key"
-                      value={tempPrivateKey}
-                      onChange={e => setTempPrivateKey(e.target.value)}
-                    />
-                  </div>
-                  {error && <div style={{ color: 'red' }}>{error}</div>}
-                  <div style={{ textAlign: 'right' }}>
-                    <Button
-                      skin="primary"
-                      style={{ marginTop: '1em' }}
-                      disabled={!tempPublicKey || !tempPrivateKey}
-                      onClick={() => handleCredsSubmit(tempPublicKey, tempPrivateKey)}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </FieldSet>
-                <div style={{ marginTop: 16, marginBottom: '1em', fontSize: 13, color: '#999', textAlign: 'center' }}>
-                  If you do not have a Dex-Trade.com API key yet, go{' '}
-                  <span className='linkStyle' onClick={() => openInBrowser('https://dex-trade.com/account/api-management')}>here</span>
-                  <br />You'll be prompted to log into your Dex-Trade.com account.
-                  If you don't have a Dex-Trade.com account yet, go{' '}
-                  <span className='linkStyle' onClick={() => openInBrowser('https://dex-trade.com/refcode/qj9c43')}>here</span>.
-                </div>
-                <div style={{ marginTop: 16, marginBottom: '1em', fontSize: 13, color: '#999', textAlign: 'center' }}>
-                  Your credentials are stored securely and only used locally.
-                </div>
-              </Modal>
-            )}
-          </div>
+          <HorizontalTab.TabBar>
+            {TABS.map(tab => (
+              <HorizontalTab
+                key={tab.key}
+                active={selected === tab.key}
+                onClick={() => handleTabClick(tab.key)}
+              >
+                {tab.label}
+              </HorizontalTab>
+            ))}
+          </HorizontalTab.TabBar>
         </div>
-        {/* Footer that extends to the Panel's edges */}
+
+        {selected === 'dashboard' && <DashboardPage />}
+        {selected === 'trade' && <TradePage />}
+        {selected === 'deposit' && <DepositWithdrawPage />}
+        {selected === 'referral' && <ReferralPage />}
+        {selected === 'settings' && <SettingsPage />}
+
+        {/* Modal for API key input */}
+        {showApiKeyModal && !isAuthenticated && (
+          <Modal 
+            title="Dex-Trade API Key" 
+            removeModal={() => setShowApiKeyModal(false)}
+            show
+            >
+            <FieldSet
+              legend="Enter your Dex-Trade API Keys"
+              style={{ marginLeft: '1em', marginRight: '1em' }}
+              >
+              <div style={{ marginBottom: '15px', color: '#ccc' }}>
+                Public Key:{' '}
+                <TextField
+                  label="Public Key"
+                  value={tempPublicKey}
+                  onChange={e => setTempPublicKey(e.target.value)}
+                />
+              </div>
+              <div style={{ marginBottom: '15px', color: '#ccc' }}>
+                Private Key:{' '}
+                <TextField
+                  label="Private Key"
+                  value={tempPrivateKey}
+                  onChange={e => setTempPrivateKey(e.target.value)}
+                />
+              </div>
+              {error && <div style={{ color: 'red' }}>{error}</div>}
+              <div style={{ textAlign: 'right' }}>
+                <Button
+                  skin="primary"
+                  style={{ marginTop: '1em' }}
+                  disabled={!tempPublicKey || !tempPrivateKey}
+                  onClick={() => handleCredsSubmit(tempPublicKey, tempPrivateKey)}
+                >
+                  Save
+                </Button>
+              </div>
+            </FieldSet>
+            <div style={{ marginTop: 16, marginBottom: '1em', fontSize: 13, color: '#999', textAlign: 'center' }}>
+              If you do not have a Dex-Trade.com API key yet, go{' '}
+              <span className='linkStyle' onClick={() => openInBrowser('https://dex-trade.com/account/api-management')}>here</span>
+              <br />You'll be prompted to log into your Dex-Trade.com account.
+              If you don't have a Dex-Trade.com account yet, go{' '}
+              <span className='linkStyle' onClick={() => openInBrowser('https://dex-trade.com/refcode/qj9c43')}>here</span>.
+            </div>
+            <div style={{ marginTop: 16, marginBottom: '1em', fontSize: 13, color: '#999', textAlign: 'center' }}>
+              Your credentials are stored securely and only used locally.
+            </div>
+          </Modal>
+        )}
+        </div>
+
+        {/* Clean sticky footer */}
         <div
           style={{
+            position: 'sticky',
+            bottom: 0,
             display: 'grid',
             gridTemplateColumns: '1fr auto 1fr',
             alignItems: 'center',
             fontSize: 'small',
             background: 'inherit',
-            padding: '8px 30px 30px 30px', // Include bottom padding to reach viewport edge
+            padding: '8px 30px 30px 30px', // Include the bottom padding here
             margin: '0',
             boxShadow: '0 -1px 3px rgba(0,0,0,0.1)',
             zIndex: 1
           }}
         >
-        
           <div style={{ justifySelf: 'start' }}>version {version}</div>
           <div style={{ justifySelf: 'center' }}>
             <Button skin="filled-primary" onClick={() => setIsDonating(true)}>Donate</Button>
