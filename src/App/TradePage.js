@@ -128,6 +128,8 @@ export default function TradePage() {
             return;
         }
         setSubmitting(true);
+        const rate18e = Math.round(parseFloat(rate) / 1e8);
+        const volume18e = Math.round(parseFloat(volume) / 1e8);
         const orderData = {
             type_trade: orderType,
             type: side,
@@ -135,8 +137,9 @@ export default function TradePage() {
             volume: volume,
             pair: pair
         };
+        console.log('Submitting order:', orderData);
         try {
-            const response = await createOrder(publicKey, privateKey, orderData);
+            const response = await createOrder(orderData, publicKey, privateKey);
             if (response) {
                 showSuccessDialog({ message: `Order ${side === 0 ? 'Buy' : 'Sell'} submitted!` });
                 setRate(0);

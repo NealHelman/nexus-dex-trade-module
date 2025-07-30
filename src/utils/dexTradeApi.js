@@ -25,16 +25,11 @@ function collectSortedValues(obj) {
  */
 export async function makeDexTradePrivateRequest(endpoint, data = {}, token, secret) {
     try {
-        data['request_id'] = Math.floor(Date.now() / 1000).toString();
-        console.log('Making API request:', {
-            endpoint,
-            data,
-            token: token.substring(0, 10) + '...',
-            url: `${DEX_TRADE_BASE_URL}${DEX_TRADE_PRIVATE_ADDON}${endpoint}`
-        });
-
-        const authSign = generateAuthSign(data, secret);
+        const request_id = Math.floor(Date.now() / 1000).toString();
+        const authSign = generateAuthSign(data, secret, request_id);
         console.log('Generated auth sign:', authSign.substring(0, 20) + '...');
+        data.request_id = request_id; // Add request_id to data
+        console.log('Request data with request_id:', data);
 
         let url = '';
         if (endpoint.substr(0, 4) === '/v1/') {
@@ -269,6 +264,7 @@ export function fetchOrderBook(pair) {
     return makeDexTradePublicRequest(`book?pair=${pair}`);
 };
 
-export function createOrder(token, secret, orderData) {
+export function createOrder(orderData, token, secret) {
+    console.log('Creating order with data:', orderData);
     return makeDexTradePrivateRequest('create-order', orderData, token, secret);
 };
