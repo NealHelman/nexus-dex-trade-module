@@ -23,13 +23,15 @@ function collectSortedValues(obj) {
  * @param {string} secret - privateKey - User's private API key
  * @returns {Promise<Object>} API response data
  */
-export async function makeDexTradePrivateRequest(endpoint, data = {}, token, secret) {
+export async function makeDexTradePrivateRequest(endpoint, body = {}, token, secret) {
     try {
+        console.log('Making private API request to:', endpoint);
+        console.log('Token:', token);
+        console.log('Request body before adding request_id:', body);
         const request_id = Math.floor(Date.now() / 1000).toString();
-        const authSign = generateAuthSign(data, secret, request_id);
-        console.log('Generated auth sign:', authSign.substring(0, 20) + '...');
-        data.request_id = request_id; // Add request_id to data
-        console.log('Request data with request_id:', data);
+        body.request_id = request_id;
+        console.log('Request body after adding request_id:', body);
+        const authSign = generateAuthSign(body, secret);
 
         let url = '';
         if (endpoint.substr(0, 4) === '/v1/') {
@@ -45,18 +47,17 @@ export async function makeDexTradePrivateRequest(endpoint, data = {}, token, sec
                 'login-token': token,
                 'x-auth-sign': authSign
             },
-            data: JSON.stringify(data)
+            data: JSON.stringify(body)
         });
 
         console.log('Raw API response:', response);
 
-        if (!response.data.status) {
+        if (response.statusText !== 'OK') {
             console.log('API returned error status:', response.data);
             throw new Error(response.data.message || 'API request failed');
         }
 
-        console.log('API success, returning data:', response.data.data);
-        return response.data.data;
+        return response;
     } catch (error) {
         console.error('Dex-Trade API Error:', error);
         showErrorDialog({

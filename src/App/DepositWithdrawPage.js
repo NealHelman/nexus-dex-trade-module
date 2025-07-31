@@ -204,7 +204,7 @@ export default function DepositWithdrawPage() {
         googlePin || null
       );
 
-      if (response && response.success) {
+      if (response && response.statusText === 'OK') {
         setWithdrawalStep('complete');
         showSuccessDialog({ message: 'Withdrawal confirmed successfully!' });
         // Reset form

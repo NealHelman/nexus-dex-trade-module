@@ -128,13 +128,11 @@ export default function TradePage() {
             return;
         }
         setSubmitting(true);
-        const rate18e = Math.round(parseFloat(rate) / 1e8);
-        const volume18e = Math.round(parseFloat(volume) / 1e8);
         const orderData = {
             type_trade: orderType,
             type: side,
-            rate: rate,
-            volume: volume,
+            rate: Number(rate).toFixed(8),
+            volume: Number(volume).toFixed(8),
             pair: pair
         };
         console.log('Submitting order:', orderData);
