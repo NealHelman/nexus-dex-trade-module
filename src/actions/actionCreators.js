@@ -19,3 +19,18 @@ export const updateInput = (inputValue) => ({
   type: TYPE.UPDATE_INPUT,
   payload: inputValue,
 });
+
+export function setIPv6(ipv6) {
+  return {
+    type: TYPE.SET_IPV6,
+    payload: ipv6,
+  };
+}
+
+export function showIPv6Dialog(ipv6) {
+  return { type: TYPE.SHOW_IPV6_DIALOG, payload: ipv6 };
+}
+
+export function hideIPv6Dialog() {
+  return { type: TYPE.HIDE_IPV6_DIALOG };
+}

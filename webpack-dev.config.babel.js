@@ -8,60 +8,64 @@ const port = 24011;
 const publicPath = `http://localhost:${port}/`;
 
 module.exports = {
-  ...baseConfig,
-  devtool: 'eval-source-map',
-  module: {
-    rules: [
-      {
-        test: /\.(js|jsx)$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            cacheDirectory: true,
-          },
+    ...baseConfig,
+    devtool: 'eval-source-map',
+    module: {
+        rules: [
+            {
+                test: /\.(js|jsx)$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        cacheDirectory: true,
+                    },
+                },
+            },
+            {
+                test: /\.(ts|tsx)$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        cacheDirectory: true,
+                        presets: [
+                            ['@babel/preset-env', { targets: require('nexus-module/lib/browserslistQuery').default }],
+                            ['@babel/preset-react', { development: process.env.NODE_ENV !== 'production', runtime: 'automatic' }],
+                            ['@babel/preset-typescript', {
+                                allowNamespaces: true,
+                                allowDeclareFields: true
+                            }],
+                        ],
+                    },
+                },
+            },
+            {
+                test: /\.css$/i,
+                use: ['style-loader', 'css-loader'],
+            },
+            {
+                test: /\.svg$/,
+                use: ['@svgr/webpack'],
+            },
+        ],
+    },
+    devServer: {
+        port,
+        devMiddleware: {
+            publicPath,
         },
-      },
-      {
-        test: /\.(ts|tsx)$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            cacheDirectory: true,
-            presets: [
-              ['@babel/preset-env', { targets: require('nexus-module/lib/browserslistQuery').default }],
-              ['@babel/preset-react', { development: process.env.NODE_ENV !== 'production', runtime: 'automatic' }],
-              ['@babel/preset-typescript', { 
-                allowNamespaces: true,
-                allowDeclareFields: true
-              }],
-            ],
-          },
+        watchFiles: {
+            paths: ['src/**/*'],
+            options: {
+                ignored: ['**/storage.json'],  // <-- ignore storage.json
+            },
         },
-      },
-      {
-        test: /\.css$/i,
-        use: ['style-loader', 'css-loader'],
-      }
-    ],
-  },
-  devServer: {
-    port,
-    devMiddleware: {
-      publicPath,
+        compress: true,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        static: {
+            directory: path.join(process.cwd(), 'dist'),
+            watch: true,
+        },
     },
-    watchFiles: {
-      paths: ['src/**/*'],
-      options: {
-        ignored: ['**/storage.json'],  // <-- ignore storage.json
-      },
-    },
-    compress: true,
-    headers: { 'Access-Control-Allow-Origin': '*' },
-    static: {
-      directory: path.join(process.cwd(), 'dist'),
-      watch: true,
-    },
-  },
 };

@@ -11,9 +11,10 @@
     "dist/index.html",
     "dist/exchange.svg",
     "dist/qr.svg",
+    "dist/copy.svg",
     "dist/js/app.js",
     "dist/Neal.png"
-    ],
+  ],
   "author": {
     "name": "Neal Helman",
     "email": "neal.helman@nexus.io"

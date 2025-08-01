@@ -10,7 +10,6 @@ module.exports = {
         filename: 'app.js',
     },
     target: 'web',
-    target: 'node',
     module: {
         rules: [
             {
@@ -24,8 +23,12 @@ module.exports = {
                 },
             },
             {
-                test: /\.css$/,              // <--- Add this rule
+                test: /\.css$/,
                 use: ['style-loader', 'css-loader'],
+            },
+            {
+                test: /\.svg$/,
+                use: ['@svgr/webpack'],
             },
         ],
     },

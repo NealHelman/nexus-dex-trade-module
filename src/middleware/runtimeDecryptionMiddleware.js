@@ -3,7 +3,10 @@ import { decryptData, isEncrypted } from '../utils/encryption';
 const ENCRYPTED_FIELDS = ['publicKey', 'privateKey'];
 
 export const runtimeDecryptionMiddleware = (store) => (next) => (action) => {
-  const result = next(action);
+    if (action.type === 'INITIALIZE') {
+        console.log('INITIALIZE action received:', action);
+    }
+    const result = next(action);
   
   // After any action, check if we need to decrypt fields in the current state
   const state = store.getState();
