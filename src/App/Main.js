@@ -1,7 +1,7 @@
 import { storageMiddleware, stateMiddleware } from 'nexus-module';
 import { useSelector, useDispatch } from 'react-redux';
 import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
-import { setPublicKey, setPrivateKey, setIPv6, hideIPv6Dialog } from '../actions/actionCreators';
+import { setPublicKey, setPrivateKey } from '../actions/actionCreators';
 import { setSelectedTab } from '../actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
@@ -13,8 +13,6 @@ import TradePage from './TradePage';
 import DepositWithdrawPage from './DepositWithdrawPage';
 import ReferralPage from './ReferralPage';
 import SettingsPage from './SettingsPage';
-import { getPublicIPv6 } from '../utils/getIPV6';
-import IPv6ChangedDialog from './IPv6ChangedDialog';
 
 const { version } = nxsPackage;
 const {
@@ -96,11 +94,6 @@ export default function Main() {
 
     const handleCredsSubmit = async (publicKeyValue, privateKeyValue) => {
         if (!publicKeyValue || !privateKeyValue || isAuthenticated) return;
-
-        // Get and store IPv6
-        const ipv6 = await getPublicIPv6();
-        dispatch(setIPv6(ipv6));
-
         dispatch(setPublicKey(publicKeyValue));
         dispatch(setPrivateKey(privateKeyValue));
         setIsAuthenticated(true);
@@ -196,9 +189,6 @@ export default function Main() {
         setDonationAmount(0);
         setIsDonating(false);
     };
-
-    const showIPv6Dialog = useSelector(state => state.settings.showIPv6Dialog);
-    const currentIPv6 = useSelector(state => state.settings.currentIPv6);
 
     return (
         <Panel
@@ -344,9 +334,6 @@ export default function Main() {
                         </Button>
                     </Modal.Footer>
                 </Modal>
-            )}
-            {showIPv6Dialog && (
-                <IPv6ChangedDialog />
             )}
         </Panel>
     );

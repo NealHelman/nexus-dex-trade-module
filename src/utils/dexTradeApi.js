@@ -1,8 +1,4 @@
 import { generateAuthSign } from './signRequest';
-import { getPublicIPv6 } from './getIPV6';
-import configureStore from '../configureStore';
-const store = configureStore();
-import { showIPv6Dialog } from '../actions/actionCreators';
 
 const { utilities: { proxyRequest, showErrorDialog } } = NEXUS;
 
@@ -28,20 +24,6 @@ function collectSortedValues(obj) {
  * @returns {Promise<Object>} API response data
  */
 export async function makeDexTradePrivateRequest(endpoint, body = {}, token, secret) {
-    // Compare current IPV6 address with stored value
-    const storedIPv6 = store.getState().settings?.ipv6;
-    const currentIPv6 = await getPublicIPv6();
-    if (!storedIPv6 || currentIPv6 !== storedIPv6) {
-        // Dispatch Redux action to show dialog
-        console.log('Current IPv6:', currentIPv6);
-        console.log('Stored IPv6:', storedIPv6);
-        store.dispatch(showIPv6Dialog(currentIPv6));
-        console.warn('Current IPv6 does not match stored value. Showing dialog to update.');
-        // Optionally, return or throw to prevent the API call
-        return;
-    }
-
-    let response = null;
     try {
         console.log('Making private API request to:', endpoint);
         console.log('Token:', token);
@@ -58,7 +40,7 @@ export async function makeDexTradePrivateRequest(endpoint, body = {}, token, sec
             url = `${DEX_TRADE_BASE_URL}${DEX_TRADE_PRIVATE_ADDON}${endpoint}`;
         }
 
-        response = await proxyRequest(url, {
+        const response = await proxyRequest(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -68,7 +50,7 @@ export async function makeDexTradePrivateRequest(endpoint, body = {}, token, sec
             data: JSON.stringify(body)
         });
 
-        console.log('Raw makeDexTradePrivateRequest API response:', response);
+        console.log('Raw API response:', response);
 
         if (response.statusText !== 'OK') {
             console.log('API returned error status:', response.data);
@@ -77,6 +59,7 @@ export async function makeDexTradePrivateRequest(endpoint, body = {}, token, sec
 
         return response;
     } catch (error) {
+        console.error('Dex-Trade API Error:', error);
         showErrorDialog({
             message: `Dex-Trade API Error: ${error.message}`
         });

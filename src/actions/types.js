@@ -1,7 +1,4 @@
 export const SET_PUBLIC_KEY = 'SET_PUBLIC_KEY';
 export const SET_PRIVATE_KEY = 'SET_PRIVATE_KEY';
 export const SET_SELECTED_TAB = 'SET_SELECTED_TAB';
-export const SET_IPV6 = 'SET_IPV6';
-export const SHOW_IPV6_DIALOG = 'SHOW_IPV6_DIALOG';
-export const HIDE_IPV6_DIALOG = 'HIDE_IPV6_DIALOG';
 export const UPDATE_INPUT = 'UPDATE_INPUT';
