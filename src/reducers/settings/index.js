@@ -8,6 +8,7 @@ const initialState = {
 };
 
 export default (state = initialState, action) => {
+    console.log('Settings reducer action:', action.type, action.payload); // Debugging line
   switch (action.type) {
     case TYPE.SET_PUBLIC_KEY:
       return {
