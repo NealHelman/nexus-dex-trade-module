@@ -1,3 +1,7 @@
+console.log("Storage path:", path)
+console.log("CWD:", process.cwd());
+console.log("DIRNAME:", __dirname);
+
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { listenToWalletData } from 'nexus-module';

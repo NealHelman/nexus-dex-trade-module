@@ -4,6 +4,7 @@ const baseConfig = require('./webpack.config.babel');
 console.log('=== DEV WEBPACK CONFIG LOADED ===');
 console.log('Base config module rules:', baseConfig.module?.rules?.length);
 
+
 const port = 24011;
 const publicPath = `http://localhost:${port}/`;
 
