@@ -11,6 +11,7 @@
     "dist/index.html",
     "dist/exchange.svg",
     "dist/qr.svg",
+    "dist/copy.svg",
     "dist/js/app.js",
     "dist/Neal.png"
     ],

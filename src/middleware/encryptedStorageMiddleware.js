@@ -58,7 +58,6 @@ export const encryptedStorageMiddleware = (selector) => (store) => (next) => (ac
 
 export const decryptionMiddleware = (store) => (next) => (action) => {
     console.log('Decryption middleware action:', action.type, action.payload); // Debugging line
-    console.log('RAW action.payload.storageData:', action.payload.storageData);
     console.log('RAW action.payload.storageData.settings:', action.payload.storageData?.settings);
     if ((action.type === 'INITIALIZE' || action.type === '@@NWM/INITIALIZE') && action.payload.storageData) {
         console.log('Decryption middleware initializing with payload:', action.payload); // Debugging line

@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+import SHA256 from 'crypto-js/sha256';
 
 /**
  * Recursively sort object keys and collect values as strings in order.
@@ -27,7 +27,7 @@ export function generateAuthSign(body, secret) {
     console.log('Values string for signing:', valuesString);
     const payload = `${valuesString}${secret}`;
     console.log('Payload for signing:', payload);
-    const hash = crypto.createHash('sha256').update(payload).digest('hex');
+    const hash = SHA256(payload).toString();
     console.log('Generated X-Auth-Sign:', hash);
     return hash;
 }
