@@ -1,8 +1,7 @@
+import store from '../store';
+import { setShowIPv6ChangedDialog, setCurrentIPv6, setIPv6 } from '../actions/actionCreators';
 import { generateAuthSign } from './signRequest';
 import { getPublicIPv6 } from './getIPV6';
-import configureStore from '../configureStore';
-const store = configureStore();
-import { showIPv6Dialog } from '../actions/actionCreators';
 const { utilities: { proxyRequest, showErrorDialog } } = NEXUS;
 
 const DEX_TRADE_BASE_URL = 'https://api.dex-trade.com';
@@ -18,6 +17,17 @@ function collectSortedValues(obj) {
         .flatMap(k => collectSortedValues(obj[k]));
 }
 
+export async function safeApiCall(apiFunc, ...args) {
+    try {
+        const result = await apiFunc(...args);
+        if (result && result.error === 'IP_CHANGED') return;
+        return result;
+    } catch (e) {
+        if (e.message === 'IP_CHANGED') return;
+        throw e;
+    }
+}
+
 /**
  * Make authenticated request to Dex-Trade private API
  * @param {string} endpoint - API endpoint (e.g., 'account-balances')
@@ -28,19 +38,20 @@ function collectSortedValues(obj) {
  */
 export async function makeDexTradePrivateRequest(endpoint, body = {}, token, secret) {
     // Compare current IPV6 address with stored value
-    const storedIPv6 = store.getState().settings?.ipv6;
-    const currentIPv6 = await getPublicIPv6();
-    if (!storedIPv6 || currentIPv6 !== storedIPv6) {
-        // Dispatch Redux action to show dialog
-        console.log('Current IPv6:', currentIPv6);
-        console.log('Stored IPv6:', storedIPv6);
-        store.dispatch(showIPv6Dialog(currentIPv6));
-        console.warn('Current IPv6 does not match stored value. Showing dialog to update.');
-        // Optionally, return or throw to prevent the API call
-        return;
+    const state = store.getState();
+    const storedIPv6 = state.settings?.ipv6;
+    const IPv6RightNow = await getPublicIPv6();
+    console.log('IPv6 right now:', IPv6RightNow);
+    console.log('Stored IPv6:', storedIPv6);
+    if (!storedIPv6 || IPv6RightNow !== storedIPv6) {
+        store.dispatch(setCurrentIPv6(IPv6RightNow));
+        store.dispatch(setShowIPv6ChangedDialog(true));
+        console.log('Current IPv6 does not match stored value. Showing dialog to update.');
+        return { error: 'IP_CHANGED' };
     }
 
-    let response = null;    try {
+    let response = null;
+    try {
         console.log('Making private API request to:', endpoint);
         console.log('Token:', token);
         console.log('Request body before adding request_id:', body);

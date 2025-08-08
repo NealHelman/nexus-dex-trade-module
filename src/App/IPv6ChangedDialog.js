@@ -1,7 +1,8 @@
 import React from 'react';
+import store from '../store';
 import { useSelector, useDispatch } from 'react-redux';
-import { hideIPv6Dialog } from '../actions/actionCreators';
 import CopyIcon from '../shared/icons/copy.svg';
+import { setPublicKey, setPrivateKey, setSelectedTab, setIPv6, setCurrentIPv6, setShowIPv6ChangedDialog } from '../actions/actionCreators';
 
 const { Modal, Button } = NEXUS.components;
 const { copyToClipboard, openInBrowser, showSuccessDialog } = NEXUS.utilities;
@@ -10,8 +11,11 @@ export default function IPv6ChangedDialog({ open, currentIPv6, onClose }) {
     console.log('Rendering IPv6ChangedDialog');
     const dispatch = useDispatch();
 
+    const showIPv6ChangedDialog = useSelector(state => state.ui.showIPv6ChangedDialog);
+    const ipv6 = useSelector(state => state.settings.ipv6);
+
     const handleCopy = () => {
-        copyToClipboard(ipv6);
+        copyToClipboard(currentIPv6);
         showSuccessDialog?.({ message: 'IPv6 address copied to clipboard.' });
     };
 
@@ -20,7 +24,8 @@ export default function IPv6ChangedDialog({ open, currentIPv6, onClose }) {
     };
 
     const handleClose = () => {
-        dispatch(hideIPv6Dialog());
+        if (ipv6 !== currentIPv6) { store.dispatch(setIPv6(currentIPv6)); }
+        store.dispatch(setShowIPv6ChangedDialog(false));
     };
 
     return (
@@ -78,8 +83,8 @@ export default function IPv6ChangedDialog({ open, currentIPv6, onClose }) {
                     </Button>
                 </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-                <Button skin="filled" onClick={onClose}>
+            <div style={{ textAlign: 'right', marginBottom: '1em', marginRight: '1em' }}>
+                <Button skin="filled" onClick={handleClose}>
                     Close
                 </Button>
             </div>

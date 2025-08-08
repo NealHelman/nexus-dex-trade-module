@@ -1,7 +1,7 @@
 import { useSelector } from 'react-redux';
 import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
 import { StyledDropdownWrapper, StyledSelect } from '../Styles/StyledComponents';
-import { fetchOrderBook, createOrder, getAccountBalances } from '../utils/dexTradeApi';
+import { safeApiCall, fetchOrderBook, createOrder, getAccountBalances } from '../utils/dexTradeApi';
 
 const {
     libraries: { React },
@@ -71,7 +71,7 @@ export default function TradePage() {
             if (!publicKey || !privateKey) return;
             setLoadingBalances(true);
             try {
-                const data = await getAccountBalances(publicKey, privateKey);
+                const data = await safeApiCall(getAccountBalances, publicKey, privateKey);
                 const dict = {};
                 if (data?.list) {
                     data.list.forEach(item => {
@@ -137,7 +137,7 @@ export default function TradePage() {
         };
         console.log('Submitting order:', orderData);
         try {
-            const response = await createOrder(orderData, publicKey, privateKey);
+            const response = await safeApiCall(createOrder, orderData, publicKey, privateKey);
             if (response) {
                 showSuccessDialog({ message: `Order ${side === 0 ? 'Buy' : 'Sell'} submitted!` });
                 setRate(0);

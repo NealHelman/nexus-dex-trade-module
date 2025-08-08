@@ -1,8 +1,7 @@
 import { storageMiddleware, stateMiddleware } from 'nexus-module';
 import { useSelector, useDispatch } from 'react-redux';
 import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
-import { setPublicKey, setPrivateKey, setIPv6, hideIPv6Dialog } from '../actions/actionCreators';
-import { setSelectedTab } from '../actions/actionCreators';
+import { setPublicKey, setPrivateKey, setSelectedTab, setIPv6, setCurrentIPv6, setShowIPv6ChangedDialog } from '../actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
 import styles from '../Styles/styles.css';
@@ -59,6 +58,9 @@ export default function Main() {
     const publicKey = useSelector(getDecryptedPublicKey);
     const privateKey = useSelector(getDecryptedPrivateKey);
     const selected = useSelector((state) => state.settings.selectedTab);
+    const ipv6 = useSelector((state) => state.settings.ipv6);
+    const showIPv6ChangedDialog = useSelector((state) => state.ui.showIPv6ChangedDialog);
+    const currentIPv6 = useSelector((state) => state.ui.currentIPv6);
 
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -194,9 +196,6 @@ export default function Main() {
         setDonationAmount(0);
         setIsDonating(false);
     };
-
-    const showIPv6Dialog = useSelector(state => state.settings.showIPv6Dialog);
-    const currentIPv6 = useSelector(state => state.settings.currentIPv6);
 
     return (
         <Panel
@@ -343,11 +342,11 @@ export default function Main() {
                     </Modal.Footer>
                 </Modal>
             )}
-            {showIPv6Dialog && currentIPv6 && (
+            {showIPv6ChangedDialog && currentIPv6 && (
                 <IPv6ChangedDialog
-                    open={showIPv6Dialog}
+                    open={showIPv6ChangedDialog}
                     currentIPv6={currentIPv6}
-                    onClose={() => dispatch(hideIPv6Dialog())}
+                    onClose={() => dispatch(setShowIPv6ChangedDialog(false))}
                 />
             )}
         </Panel>
