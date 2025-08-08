@@ -3,7 +3,7 @@ import { decryptData, isEncrypted } from '../utils/encryption';
 const ENCRYPTED_FIELDS = ['publicKey', 'privateKey'];
 
 export const runtimeDecryptionMiddleware = (store) => (next) => (action) => {
-    console.log('Runtime decryption middleware action:', action.type, action.payload); // Debugging line
+    console.log('Runtime decryption middleware action:', action); // Debugging line
     const result = next(action);
 
     // After any action, check if we need to decrypt fields in the current state

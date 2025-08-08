@@ -28,6 +28,7 @@
     "dev": "cross-env NODE_ENV=development webpack serve --config webpack-dev.config.babel.js"
   },
   "dependencies": {
+    "@babel/plugin-proposal-decorators": "^7.28.0",
     "@svgr/webpack": "^8.1.0",
     "axios": "^1.11.0",
     "crypto-js": "^4.2.0",
@@ -39,6 +40,7 @@
     "react-redux": "^8.0.2",
     "redux": "^4.2.0",
     "redux-thunk": "^3.1.0",
+    "thunk": "^0.0.1",
     "zod": "^4.0.10"
   }
 }

@@ -1,4 +1,6 @@
 import { createStore, compose, applyMiddleware } from 'redux';
+import { thunk } from 'redux-thunk';
+
 import createReducer from './reducers';
 import { storageMiddleware, stateMiddleware } from 'nexus-module';
 import { encryptedStorageMiddleware, decryptionMiddleware } from './middleware/encryptedStorageMiddleware';
@@ -7,10 +9,10 @@ export default function configureStore() {
     //Middlewares will automatically save when the state as changed,
     //ie state.settings will be stored on disk and will save every time state.settings is changed.
     const middlewares = [
-        storageMiddleware(({ settings }) => ({ settings })), //Data saved to disk
-        decryptionMiddleware, // Decrypt on load
-        encryptedStorageMiddleware(({ settings }) => ({ settings })), // Encrypt on save
-        stateMiddleware(({ ui }) => ({ ui })), //Data saved to session
+        storageMiddleware(({ settings }) => ({ settings })), // Save to disk
+        encryptedStorageMiddleware(({ settings }) => ({ settings })), // Encrypt before saving
+        stateMiddleware(({ ui }) => ({ ui })), // Save to session
+        thunk, // Allows for async actions
     ];
     const enhancers = [applyMiddleware(...middlewares)];
 
@@ -27,16 +29,7 @@ export default function configureStore() {
 
     if (module.hot) {
         module.hot.accept('./reducers', () => {
-            // Preserve the current state when replacing the reducer
-            const currentState = store.getState();
-            console.log('HMR: Preserving current state:', currentState); // Debugging line
             store.replaceReducer(createReducer());
-
-            // Restore the preserved state
-            store.dispatch({
-                type: '@@REDUX_HMR_RESTORE_STATE',
-                payload: currentState
-            });
         });
     }
 

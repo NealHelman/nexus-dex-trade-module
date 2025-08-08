@@ -37,30 +37,34 @@ function decryptSensitiveFields(state, genesis) {
     return { ...state, settings: decryptedSettings };
 }
 
-export const encryptedStorageMiddleware = (selector) => (store) => (next) => (action) => {
-    console.log('Encrypted storage middleware action:', action.type, action.payload); // Debugging line
-    const result = next(action);
-    const state = store.getState();
-    const genesis = state.nexus?.userStatus?.genesis ?? 'default-key';
-    const dataToSave = selector(state);
+let lastPersistedSettings = null;
 
-    // Don't save to storage when the runtime middleware is just decrypting for display
+export const encryptedStorageMiddleware = (selector) => (store) => (next) => (action) => {
+    const result = next(action);
+
     if (action.type === 'UPDATE_DECRYPTED_SETTINGS') {
         return result;
     }
 
+    const state = store.getState();
+    const genesis = state.nexus?.userStatus?.genesis ?? 'default-key';
+    const dataToSave = selector(state);
     const encryptedData = encryptSensitiveFields(dataToSave, genesis);
-    const { updateStorage } = NEXUS.utilities;
-    updateStorage(encryptedData);
+
+    // Compare with last persisted
+    if (JSON.stringify(encryptedData) !== JSON.stringify(lastPersistedSettings)) {
+        const { updateStorage } = NEXUS.utilities;
+        updateStorage(encryptedData);
+        lastPersistedSettings = encryptedData;
+    }
 
     return result;
 };
 
 export const decryptionMiddleware = (store) => (next) => (action) => {
-    console.log('Decryption middleware action:', action.type, action.payload); // Debugging line
-    console.log('RAW action.payload.storageData.settings:', action.payload.storageData?.settings);
+    console.log('Decryption middleware action:', action); // Debugging line
     if ((action.type === 'INITIALIZE' || action.type === '@@NWM/INITIALIZE') && action.payload.storageData) {
-        console.log('Decryption middleware initializing with payload:', action.payload); // Debugging line
+        console.log('Decryption middleware INITIALIZE:', action); // Debugging line
         const state = store.getState();
         const genesis = state.nexus?.userStatus?.genesis ?? action.payload?.userStatus?.genesis ?? 'default-key';
         console.log('Genesis key for decryption:', genesis);

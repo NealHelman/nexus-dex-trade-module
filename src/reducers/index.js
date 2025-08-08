@@ -7,13 +7,25 @@ import ui from './ui';
 
 export default function createReducer() {
     return function (state, action) {
-        // Log the action type for debugging purposes
-        console.log('Reducer action:', action.type, action.payload); // Debugging line
         const baseReducer = combineReducers({
             settings,
             ui,
             nexus: walletDataReducer,
         });
-        return baseReducer(state, action);
+        const newState = baseReducer(state, action);
+
+        if (action.type === INITIALIZE) {
+            console.log('INITIALIZE state with action:', action);
+            const { storageData, moduleState } = action.payload;
+            if (storageData || moduleState) {
+                return {
+                    ...newState,
+                    ...action.payload.storageData,
+                    ...action.payload.moduleState,
+                };
+            }
+        }
+
+        return newState;
     };
 }
