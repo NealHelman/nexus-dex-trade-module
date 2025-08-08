@@ -20,11 +20,12 @@ export const setIPv6 = (ipv6) => ({
     payload: ipv6,
 });
 
-export const showIPv6Dialog = (ipv6) => ({
-    type: TYPE.SHOW_IPV6_DIALOG,
-    payload: ipv6,
+export const setCurrentIPv6 = (currentIPv6) => ({
+    type: TYPE.SET_CURRENT_IPV6,
+    payload: currentIPv6,
 });
 
-export const hideIPv6Dialog = () => ({
-    type: TYPE.HIDE_IPV6_DIALOG,
+export const setShowIPv6ChangedDialog = (show) => ({
+    type: TYPE.SET_SHOW_IPV6_CHANGED_DIALOG,
+    payload: show,
 });

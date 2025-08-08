@@ -1,7 +1,7 @@
 import IPv6ChangedDialog from './IPv6ChangedDialog';
 import { useSelector, useDispatch } from 'react-redux';
 import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
-import { setPublicKey, setPrivateKey } from '../actions/actionCreators';
+import { setPublicKey, setPrivateKey, setShowIPv6ChangedDialog, setCurrentIPv6 } from '../actions/actionCreators';
 import { getPublicIPv6 } from '../utils/getIPV6';
 
 const {
@@ -26,8 +26,6 @@ export default function SettingsPage() {
     const publicKey = useSelector(getDecryptedPublicKey);
     const privateKey = useSelector(getDecryptedPrivateKey);
     const storedIPv6 = useSelector(state => state.settings.ipv6);
-    const [showIPv6Dialog, setShowIPv6Dialog] = useState(false);
-    const [currentIPv6, setCurrentIPv6] = useState('');
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
@@ -36,7 +34,7 @@ export default function SettingsPage() {
             const ipv6 = await getPublicIPv6();
             if (ipv6 && ipv6 !== storedIPv6) {
                 setCurrentIPv6(ipv6);
-                setShowIPv6Dialog(true);
+                setShowIPv6ChangedDialog(true);
             }
         }
         checkIPv6();
@@ -140,12 +138,6 @@ export default function SettingsPage() {
                         </div>
                     </FieldSet>
                 </Modal>
-            )}
-            {showIPv6Dialog && (
-                <IPv6ChangedDialog
-                    ipv6={currentIPv6}
-                    onClose={() => setShowIPv6Dialog(false)}
-                />
             )}
         </div>
     );

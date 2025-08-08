@@ -4,7 +4,7 @@ const initialState = {
     publicKey: null,
     privateKey: null,
     selectedTab: null,
-    showIPv6Dialog: false
+    ipv6: null,
 };
 
 export default function settings(state = initialState, action) {
@@ -17,10 +17,6 @@ export default function settings(state = initialState, action) {
             return { ...state, selectedTab: action.payload };
         case TYPE.SET_IPV6:
             return { ...state, ipv6: action.payload };
-        case TYPE.SHOW_IPV6_DIALOG:
-            return { ...state, showIPv6Dialog: true, currentIPv6: action.payload };
-        case TYPE.HIDE_IPV6_DIALOG:
-            return { ...state, showIPv6Dialog: false, currentIPv6: null };
         case 'UPDATE_DECRYPTED_SETTINGS':
             return { ...state, ...action.payload };
         default:

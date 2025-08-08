@@ -3,11 +3,10 @@ import { Provider } from 'react-redux';
 import { listenToWalletData } from 'nexus-module';
 import marketplaceTheme from './Styles/theme';
 
-import configureStore from './configureStore';
+import store from './store';
 import App from './App';
 import './Styles/styles.css';
 
-const store = configureStore();
 listenToWalletData(store);
 
 const {
