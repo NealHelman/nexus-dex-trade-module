@@ -28,13 +28,19 @@
     "dev": "cross-env NODE_ENV=development webpack serve --config webpack-dev.config.babel.js"
   },
   "dependencies": {
+    "@babel/plugin-proposal-decorators": "^7.28.0",
+    "@svgr/webpack": "^8.1.0",
+    "axios": "^1.11.0",
     "crypto-js": "^4.2.0",
+    "fs": "^0.0.1-security",
     "jotai": "^2.12.5",
     "nexus-module": "^1.1.11",
+    "path": "^0.12.7",
     "qrcode": "^1.5.4",
     "react-redux": "^8.0.2",
     "redux": "^4.2.0",
     "redux-thunk": "^3.1.0",
+    "thunk": "^0.0.1",
     "zod": "^4.0.10"
   }
 }
