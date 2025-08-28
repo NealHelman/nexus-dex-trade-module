@@ -1,39 +1,72 @@
-// src/utils/encryption.js
-import CryptoJS from 'crypto-js';
+import sodium from 'libsodium-wrappers';
+import { scrypt } from '@noble/hashes/scrypt';
 
-const ENCRYPTION_PREFIX = 'ENC:'; // Add a clear prefix to identify encrypted data
+// Scrypt parameters
+const SCRYPT_N = 2 ** 15; // CPU/memory cost
+const SCRYPT_r = 8;       // block size
+const SCRYPT_p = 1;       // parallelization
+const SCRYPT_KEYLEN = 32; // derived key length in bytes
 
-// Accept genesis (or whatever unique identifier) as argument
-function getEncryptionKey(genesis) {
-  return CryptoJS.SHA256(genesis).toString();
+// Helper to convert string to Uint8Array
+function toBytes(str) {
+    return typeof str === 'string'
+        ? new TextEncoder().encode(str)
+        : str;
 }
 
-export function encryptData(data, genesis) {
-  if (!data) return data;
-  const key = getEncryptionKey(genesis);
-  const encrypted = CryptoJS.AES.encrypt(data, key).toString();
-  return ENCRYPTION_PREFIX + encrypted; // Add prefix to clearly mark as encrypted
+export async function encryptApiKeys(apiKeysObject, pin) {
+    await sodium.ready;
+    const salt = sodium.randombytes_buf(16);
+    // Derive key from pin using scrypt
+    const key = scrypt(toBytes(pin), salt, {
+        N: SCRYPT_N,
+        r: SCRYPT_r,
+        p: SCRYPT_p,
+        dkLen: SCRYPT_KEYLEN,
+    });
+
+    const apiKeysJson = JSON.stringify(apiKeysObject);
+    const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+    const ciphertext = sodium.crypto_secretbox_easy(
+        toBytes(apiKeysJson),
+        nonce,
+        key
+    );
+
+    // Combine salt, nonce, and ciphertext for storage (all as base64)
+    return JSON.stringify({
+        salt: sodium.to_base64(salt),
+        nonce: sodium.to_base64(nonce),
+        ciphertext: sodium.to_base64(ciphertext),
+    });
 }
 
-export function decryptData(encryptedData, genesis) {
-  if (!encryptedData) return encryptedData;
-  try {
-    // Remove prefix before decrypting
-    if (!encryptedData.startsWith(ENCRYPTION_PREFIX)) {
-      return encryptedData; // Not encrypted, return as-is
-    }
-    
-    const actualEncryptedData = encryptedData.substring(ENCRYPTION_PREFIX.length);
-    const key = getEncryptionKey(genesis);
-    const bytes = CryptoJS.AES.decrypt(actualEncryptedData, key);
-    return bytes.toString(CryptoJS.enc.Utf8);
-  } catch (error) {
-    console.error('Decryption failed:', error);
-    return null;
-  }
+export async function decryptApiKeys(encryptedApiKeysBlob, pin) {
+    await sodium.ready;
+    const { salt, nonce, ciphertext } = JSON.parse(encryptedApiKeysBlob);
+    const saltBuf = sodium.from_base64(salt);
+    const nonceBuf = sodium.from_base64(nonce);
+    const ciphertextBuf = sodium.from_base64(ciphertext);
+
+    // Derive key again with scrypt
+    const key = scrypt(toBytes(pin), saltBuf, {
+        N: SCRYPT_N,
+        r: SCRYPT_r,
+        p: SCRYPT_p,
+        dkLen: SCRYPT_KEYLEN,
+    });
+
+    const decrypted = sodium.crypto_secretbox_open_easy(
+        ciphertextBuf,
+        nonceBuf,
+        key
+    );
+    if (!decrypted) throw new Error('Decryption failed: incorrect PIN or corrupted data');
+
+    const apiKeysJson = new TextDecoder().decode(decrypted);
+    return { apiKeysObject: JSON.parse(apiKeysJson) };
 }
 
-export function isEncrypted(value) {
-  // Simply check for our encryption prefix
-  return typeof value === 'string' && value.startsWith(ENCRYPTION_PREFIX);
+export function clearEncryptionCache() {
+    // No-op for this implementation, but kept for API compatibility
 }

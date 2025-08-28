@@ -1,27 +1,36 @@
-import { decryptData, isEncrypted } from '../utils/encryption';
+import { decryptApiKeys } from '../utils/encryption';
 
 const ENCRYPTED_FIELDS = ['publicKey', 'privateKey'];
+const ENCRYPTION_PREFIX = 'ENC:';
+
+function isEncrypted(value) {
+    // Simply check for our encryption prefix
+    return typeof value === 'string' && value.startsWith(ENCRYPTION_PREFIX);
+}
 
 export const runtimeDecryptionMiddleware = (store) => (next) => (action) => {
-    console.log('Runtime decryption middleware action:', action); // Debugging line
     const result = next(action);
 
-    // After any action, check if we need to decrypt fields in the current state
+    // Get unlock state from Redux
     const state = store.getState();
-    console.log('Current state before decryption:', state); // Debugging line
-    const genesis = state.nexus?.userStatus?.genesis ?? action.payload?.userstatus?.genesis ?? 'default-key';
-    console.log('Genesis key for decryption:', genesis); // Debugging line
+    const isUnlocked = state.session?.isUnlocked;
+    const pin = state.session?.pin; // Only in memory
 
-    if (state.settings && genesis !== 'default-key') {
+    if (!isUnlocked || !pin) {
+        // Don't attempt to decrypt/encrypt if not unlocked
+        return result;
+    }
+
+    if (state.settings) {
         let needsDecryption = false;
-        const decryptedSettings = { ...state.settings };
+        const decryptedSettings = { ...state.session };
         console.log('Decrypted settings before processing:', decryptedSettings); // Debugging line
 
         ENCRYPTED_FIELDS.forEach(field => {
-            const val = state.settings[field];
+            const val = state.session[field];
             console.log(`Processing field: ${field}, value:`, val); // Debugging line
             if (val && isEncrypted(val)) {
-                const decrypted = decryptData(val, genesis);
+                const decrypted = decryptApiKeys(val, pin);
                 console.log(`Decrypted value for ${field}:`, decrypted); // Debugging line
                 if (decrypted !== null) {
                     decryptedSettings[field] = decrypted;

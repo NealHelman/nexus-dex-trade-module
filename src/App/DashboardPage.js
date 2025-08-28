@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { safeApiCall, getAccountBalances, getRecentOrders, getMarketTicker, getMarkets } from '../utils/dexTradeApi';
-import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
+import { useSessionUnlock } from "../context/SessionUnlockProvider.jsx";
 import { StyledDropdownWrapper, StyledSelect, ModalFooterBar, ModalButton, StyledTextField, StyledTextArea } from '../Styles/StyledComponents';
 
 const {
@@ -21,8 +21,9 @@ const {
 const { useState, useEffect } = React;
 
 export default function DashboardPage() {
-    const publicKey = useSelector(getDecryptedPublicKey);
-    const privateKey = useSelector(getDecryptedPrivateKey);
+    const { isUnlocked, apiKeys, requestUnlock, lock, lockedByTimeout } = useSessionUnlock();
+    const publicKey = apiKeys?.publicKey;
+    const privateKey = apiKeys?.privateKey;
     const [balances, setBalances] = useState([]);
     const [recentOrders, setRecentOrders] = useState([]);
     const [marketData, setMarketData] = useState({});
@@ -47,7 +48,11 @@ export default function DashboardPage() {
     };
 
     const loadDashboardData = async () => {
-        if (!publicKey || !privateKey) return;
+        if (!isUnlocked) {
+            console.log('[DashboardPage::loadDashboardData] API keys locked, requesting unlock...');
+            requestUnlock();
+            return;
+        }
         const token = publicKey;
         const secret = privateKey;
 
@@ -141,6 +146,8 @@ export default function DashboardPage() {
         <div style={{ padding: '20px', maxWidth: '1000px', margin: 'auto auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h2 style={{ color: '#00b7fa', margin: 0 }}>Dashboard</h2>
+                {lockedByTimeout && <div className="info">Session locked after inactivity.</div>}
+
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     {lastUpdated && (
                         <span style={{ fontSize: '12px', color: '#888' }}>

@@ -1,6 +1,6 @@
 import { storageMiddleware, stateMiddleware } from 'nexus-module';
 import { useSelector, useDispatch } from 'react-redux';
-import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
+import { useSessionUnlock } from "../context/SessionUnlockProvider.jsx";
 import { setPublicKey, setPrivateKey, setSelectedTab, setIPv6, setCurrentIPv6, setShowIPv6ChangedDialog } from '../actions/actionCreators';
 import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
@@ -55,8 +55,10 @@ export default function Main() {
     const dispatch = useDispatch();
 
     // Get data from Redux store instead of localStorage
-    const publicKey = useSelector(getDecryptedPublicKey);
-    const privateKey = useSelector(getDecryptedPrivateKey);
+    const { isUnlocked, apiKeys, requestUnlock, lock, lockedByTimeout } = useSessionUnlock();
+    const publicKey = apiKeys?.publicKey;
+    const privateKey = apiKeys?.privateKey;
+
     const selected = useSelector((state) => state.settings.selectedTab);
     const ipv6 = useSelector((state) => state.settings.ipv6);
     const showIPv6ChangedDialog = useSelector((state) => state.ui.showIPv6ChangedDialog);
@@ -97,7 +99,12 @@ export default function Main() {
     const currentApiKey = useSelector((state) => state.settings.apiKey);
 
     const handleCredsSubmit = async (publicKeyValue, privateKeyValue) => {
-        if (!publicKeyValue || !privateKeyValue || isAuthenticated) return;
+        if (!isUnlocked) {
+            console.log('[Main::handleCredsSubmit] App is locked, requesting unlock...');
+            requestUnlock();
+            return;
+        }
+        if (isAuthenticated) return;
         // Get and store IPv6
         const ipv6 = await getPublicIPv6();
         dispatch(setIPv6(ipv6));

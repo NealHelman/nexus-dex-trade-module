@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { safeApiCall, getDepositAddress, initiateWithdrawal, sendWithdrawalPin, confirmWithdrawal } from '../utils/dexTradeApi';
-import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
+import { useSessionUnlock } from "../context/SessionUnlockProvider.jsx";
 import { StyledDropdownWrapper, StyledSelect } from '../Styles/StyledComponents';
 import QRCodeDisplay from '../shared/components/QRCodeDisplay';
 
@@ -32,8 +32,9 @@ const SUPPORTED_CURRENCIES = [
 ];
 
 export default function DepositWithdrawPage() {
-    const publicKey = useSelector(getDecryptedPublicKey);
-    const privateKey = useSelector(getDecryptedPrivateKey);
+    const { isUnlocked, apiKeys, requestUnlock, lock, lockedByTimeout } = useSessionUnlock();
+    const publicKey = apiKeys?.publicKey;
+    const privateKey = apiKeys?.privateKey;
 
     // Access Nexus address book from Redux state
     const addressBook = useSelector(state => state?.nexus?.addressBook || {});
@@ -77,7 +78,11 @@ export default function DepositWithdrawPage() {
     }, []);
 
     const loadDepositAddress = async () => {
-        if (!publicKey || !privateKey) return;
+        if (!isUnlocked) {
+            console.log('[DepositWithdraPage::loadDepositAddress] API keys locked, requesting unlock...');
+            requestUnlock();
+            return;
+        }
 
         setLoadingAddress(true);
         try {
@@ -282,6 +287,7 @@ export default function DepositWithdrawPage() {
     return (
         <div style={{ padding: '20px', maxWidth: '1000px', margin: 'auto' }}>
             <h2 style={{ color: '#00b7fa', marginBottom: '20px', textAlign: 'center' }}>Deposit & Withdraw</h2>
+            {lockedByTimeout && <div className="info">Session locked after inactivity.</div>}
 
             {/* Deposits Section */}
             <FieldSet legend="Deposit Funds" style={{ marginBottom: '30px' }}>

@@ -19,20 +19,41 @@ module.exports = {
                     loader: 'babel-loader',
                     options: {
                         cacheDirectory: true,
+                        presets: [
+                            '@babel/preset-env',
+                            '@babel/preset-react',
+                            '@babel/preset-typescript'
+                        ],
                     },
                 },
             },
             {
-                test: /\.css$/,              // <--- Add this rule
+                test: /\.css$/,
                 use: ['style-loader', 'css-loader'],
             },
             {
                 test: /\.svg$/,
                 use: ['@svgr/webpack'],
             },
+            {
+                test: /\.wasm$/,
+                type: 'webassembly/async'
+            }
         ],
     },
     resolve: {
         alias: webpackAliases,
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+        fallback: {
+            fs: false,
+            path: false,
+            os: false,
+            crypto: false,
+            stream: false,
+            util: false,
+        },
+    },
+    experiments: {
+        asyncWebAssembly: true
     },
 };

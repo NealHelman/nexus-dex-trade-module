@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
+import { useSessionUnlock } from "../context/SessionUnlockProvider.jsx";
 import { StyledDropdownWrapper, StyledSelect } from '../Styles/StyledComponents';
 import { safeApiCall, fetchOrderBook, createOrder, getAccountBalances } from '../utils/dexTradeApi';
 
@@ -19,6 +19,9 @@ function generateRequestId() {
 }
 
 export default function TradePage() {
+    const { isUnlocked, apiKeys, requestUnlock, lock, lockedByTimeout } = useSessionUnlock();
+    const publicKey = apiKeys?.publicKey;
+    const privateKey = apiKeys?.privateKey;
     const [pair, setPair] = React.useState('NXSUSDT');
     const [orderBook, setOrderBook] = React.useState({ buy: [], sell: [] });
     const [loadingBook, setLoadingBook] = React.useState(false);
@@ -34,9 +37,6 @@ export default function TradePage() {
     const [balances, setBalances] = React.useState({});
     const [loadingBalances, setLoadingBalances] = React.useState(false);
 
-    const publicKey = useSelector(getDecryptedPublicKey);
-    const privateKey = useSelector(getDecryptedPrivateKey);
-
     // Get base/quote from selected pair
     const pairObj = PAIRS.find(p => p.value === pair) || PAIRS[0];
     const base = pairObj.base;
@@ -48,12 +48,7 @@ export default function TradePage() {
             setLoadingBook(true);
             let data = null;
             try {
-                // TODO: Remove this once listing is available and trading is open
-                if (pair === 'NXSUSDT') {
-                    showInfoDialog({ message: 'Sadly enough, NXS is not yet available' });
-                } else {
-                    data = await fetchOrderBook(pair);
-                }
+                data = await fetchOrderBook(pair);
                 setOrderBook(data || { buy: [], sell: [] });
             } catch (e) {
                 setOrderBook({ buy: [], sell: [] });
@@ -68,7 +63,10 @@ export default function TradePage() {
     // Fetch balances
     React.useEffect(() => {
         const loadBalances = async () => {
-            if (!publicKey || !privateKey) return;
+            if (!isUnlocked) {
+                requestUnlock();
+                return;
+            }
             setLoadingBalances(true);
             try {
                 const data = await safeApiCall(getAccountBalances, publicKey, privateKey);
@@ -123,6 +121,10 @@ export default function TradePage() {
 
     const handleOrderSubmit = async (e) => {
         e.preventDefault();
+        if (!isUnlocked) {
+            requestUnlock();
+            return;
+        }
         if (rate < 0 || volume < 0) {
             showErrorDialog({ message: 'Rate and Volume must be zero or greater.' });
             return;
@@ -156,6 +158,7 @@ export default function TradePage() {
     return (
         <div style={{ padding: '20px', maxWidth: '1000px', margin: 'auto' }}>
             <h2 style={{ color: '#00b7fa', marginBottom: '20px', textAlign: 'center' }}>Trading</h2>
+            {lockedByTimeout && <div className="info">Session locked after inactivity.</div>}
             <FieldSet legend="Order Book" style={{ marginBottom: 30 }}>
                 <div style={{
                     display: 'flex',

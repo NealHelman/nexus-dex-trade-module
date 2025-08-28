@@ -1,6 +1,6 @@
 import IPv6ChangedDialog from './IPv6ChangedDialog';
+import { useSessionUnlock } from "../context/SessionUnlockProvider.jsx";
 import { useSelector, useDispatch } from 'react-redux';
-import { getDecryptedPublicKey, getDecryptedPrivateKey } from '../selectors/settingsSelectors';
 import { setPublicKey, setPrivateKey, setShowIPv6ChangedDialog, setCurrentIPv6 } from '../actions/actionCreators';
 import { getPublicIPv6 } from '../utils/getIPV6';
 
@@ -23,8 +23,9 @@ const { useState, useEffect } = React;
 
 export default function SettingsPage() {
     const dispatch = useDispatch();
-    const publicKey = useSelector(getDecryptedPublicKey);
-    const privateKey = useSelector(getDecryptedPrivateKey);
+    const { isUnlocked, apiKeys, requestUnlock, lock, lockedByTimeout } = useSessionUnlock();
+    const publicKey = apiKeys?.publicKey;
+    const privateKey = apiKeys?.privateKey;
     const storedIPv6 = useSelector(state => state.settings.ipv6);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
@@ -45,8 +46,8 @@ export default function SettingsPage() {
     };
 
     const confirmReset = () => {
-        dispatch(setPublicKey(''));
-        dispatch(setPrivateKey(''));
+        apiKeys.publicKey = null;
+        apiKeys.privateKey = null;
         setShowConfirmModal(false);
         showSuccessDialog({
             message: 'API keys has been reset. You will be prompted to enter a new one.'
@@ -60,6 +61,7 @@ export default function SettingsPage() {
     return (
         <div style={{ padding: '20px', maxWidth: '600px', margin: 'auto auto' }}>
             <h2 style={{ marginBottom: '20px', color: '#00b7fa', textAlign: 'center' }}>Settings</h2>
+            {lockedByTimeout && <div className="info">Session locked after inactivity.</div>}
 
             <FieldSet legend="API Key Management" style={{ marginBottom: '20px' }}>
                 <div style={{ padding: '15px' }}>
