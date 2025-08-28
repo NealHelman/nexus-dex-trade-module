@@ -1,4 +1,5 @@
 import IPv6ChangedDialog from './IPv6ChangedDialog';
+import { clearEncryptedApiKeysBlob } from '../actions/actionCreators';
 import { useSessionUnlock } from "../context/SessionUnlockProvider.jsx";
 import { useSelector, useDispatch } from 'react-redux';
 import { setPublicKey, setPrivateKey, setShowIPv6ChangedDialog, setCurrentIPv6 } from '../actions/actionCreators';
@@ -23,10 +24,10 @@ const { useState, useEffect } = React;
 
 export default function SettingsPage() {
     const dispatch = useDispatch();
-    const { isUnlocked, apiKeys, requestUnlock, lock, lockedByTimeout } = useSessionUnlock();
+    const { isUnlocked, apiKeys, requestUnlock, lock, lockedByTimeout, handleReset } = useSessionUnlock();
     const publicKey = apiKeys?.publicKey;
     const privateKey = apiKeys?.privateKey;
-    const storedIPv6 = useSelector(state => state.settings.ipv6);
+    const storedIPv6 = useSelector(state => state.session.ipv6);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
@@ -46,11 +47,11 @@ export default function SettingsPage() {
     };
 
     const confirmReset = () => {
-        apiKeys.publicKey = null;
-        apiKeys.privateKey = null;
+        dispatch(clearEncryptedApiKeysBlob());
+        handleReset();
         setShowConfirmModal(false);
         showSuccessDialog({
-            message: 'API keys has been reset. You will be prompted to enter a new one.'
+            message: 'API keys have been reset. You will be prompted to enter a new one.'
         });
     };
 

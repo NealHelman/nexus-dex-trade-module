@@ -7,13 +7,15 @@ import { encryptedStorageMiddleware, decryptionMiddleware } from './middleware/e
 
 export default function configureStore() {
     //Middlewares will automatically save when the state as changed,
-    //ie state.settings will be stored on disk and will save every time state.settings is changed.
+    //ie state.session.dexTradeModule will be stored on disk and will save every time state.session.dexTradeModule is changed.
     const middlewares = [
-        storageMiddleware(({ settings }) => ({ settings })), // Save to disk
-        encryptedStorageMiddleware(({ settings }) => ({ settings })), // Encrypt before saving
+        storageMiddleware(state => ({ dexTradeModule: state.session?.dexTradeModule })), // Load/save to disk
+        decryptionMiddleware, // <-- Decrypt after load from disk, before anything else
+        encryptedStorageMiddleware(({ session }) => ({ session })), // Encrypt before saving
         stateMiddleware(({ ui }) => ({ ui })), // Save to session
         thunk, // Allows for async actions
     ];
+
     const enhancers = [applyMiddleware(...middlewares)];
 
     const composeEnhancers =

@@ -1,40 +1,29 @@
 import PropTypes from "prop-types";
 import { useDispatch } from "react-redux";
 import { encryptApiKeys, decryptApiKeys, clearEncryptionCache } from "../utils/encryption";
-import MaskableTextField from "../shared/components/MaskableTextField.tsx";
+import { setEncryptedApiKeysBlob as setEncryptedApiKeysBlobAction } from "../actions/actionCreators";
 const {
     libraries: {
         React,
-    },
-    components: {
-        Button,
-        Modal,
-        FieldSet,
-    },
-    utilities: {
-        confirm,
-        showSuccessDialog,
     }
 } = NEXUS;
-
 const { createContext, useCallback, useContext, useEffect, useRef, useState } = React;
 
-
-// --- CONFIGURABLE ---
 const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 const SessionUnlockContext = createContext();
 
-export function SessionUnlockProvider({ children, encryptedApiKeysBlob, genesis }) {
+export function SessionUnlockProvider({ children, encryptedApiKeysBlob, setEncryptedApiKeysBlob, genesis }) {
     const [isUnlocked, setIsUnlocked] = useState(false);
     const [apiKeys, setApiKeys] = useState(null);
     const [showPinModal, setShowPinModal] = useState(false);
+    const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
     const [pinError, setPinError] = useState("");
     const [lockedByTimeout, setLockedByTimeout] = useState(false);
     const inactivityTimer = useRef(null);
     const dispatch = useDispatch();
 
-    // --- Inactivity timer logic ---
+    // Inactivity timer logic
     const resetInactivityTimer = useCallback(() => {
         if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
         if (isUnlocked) {
@@ -44,7 +33,6 @@ export function SessionUnlockProvider({ children, encryptedApiKeysBlob, genesis 
         }
     }, [isUnlocked]);
 
-    // Reset timer on user activity (mouse/keyboard/touch)
     useEffect(() => {
         if (!isUnlocked) return;
         const events = ["mousemove", "keydown", "mousedown", "touchstart"];
@@ -56,17 +44,31 @@ export function SessionUnlockProvider({ children, encryptedApiKeysBlob, genesis 
         };
     }, [isUnlocked, resetInactivityTimer]);
 
-    // --- Unlock logic ---
+    // Show modals appropriately
+    useEffect(() => {
+        if (!encryptedApiKeysBlob) {
+            setShowFirstTimeModal(true);
+            setShowPinModal(false);
+        } else {
+            setShowFirstTimeModal(false);
+        }
+    }, [encryptedApiKeysBlob]);
+
+    // Unlock logic
     const requestUnlock = useCallback(() => {
-        setShowPinModal(true);
-        setPinError("");
-        setLockedByTimeout(false);
-    }, []);
+        if (!encryptedApiKeysBlob) {
+            setShowFirstTimeModal(true);
+        } else {
+            setShowPinModal(true);
+            setPinError("");
+            setLockedByTimeout(false);
+        }
+    }, [encryptedApiKeysBlob]);
 
     const handleUnlock = useCallback(async (pin) => {
         try {
             dispatch({ type: 'SESSION_UNLOCKED', pin });
-            const { apiKeysObject } = await decryptApiKeys(encryptedApiKeysBlob, { pin });
+            const { apiKeysObject } = await decryptApiKeys(encryptedApiKeysBlob, pin);
             setApiKeys(apiKeysObject);
             setIsUnlocked(true);
             setShowPinModal(false);
@@ -75,15 +77,11 @@ export function SessionUnlockProvider({ children, encryptedApiKeysBlob, genesis 
         } catch (err) {
             setPinError("Incorrect PIN or corrupted data.");
         } finally {
-            // Clear PIN from memory
-            if (typeof pin === "string") {
-                for (let i = 0; i < pin.length; ++i) pin[i] = "\0";
-            }
             clearEncryptionCache();
         }
     }, [encryptedApiKeysBlob, resetInactivityTimer]);
 
-    // --- Lock logic ---
+    // Lock logic
     const handleLock = useCallback((fromTimeout = false) => {
         dispatch({ type: 'SESSION_LOCKED' });
         setApiKeys(null);
@@ -93,72 +91,83 @@ export function SessionUnlockProvider({ children, encryptedApiKeysBlob, genesis 
         clearEncryptionCache();
         if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
         setLockedByTimeout(!!fromTimeout);
-        // Clear PIN from memory
-        if (typeof pin === "string") {
-            for (let i = 0; i < pin.length; ++i) pin[i] = "\0";
-        }
     }, []);
 
-    // --- Expose context API ---
+    // First-time save handler
+    const handleFirstTimeSave = useCallback(async ({ publicKey, privateKey, pin, pinConfirm }) => {
+        if (!publicKey || !privateKey || !pin || !pinConfirm) {
+            setPinError("All fields are required.");
+            return;
+        }
+        if (pin !== pinConfirm) {
+            setPinError("PINs do not match.");
+            return;
+        }
+        try {
+            const encrypted = await encryptApiKeys({ publicKey, privateKey }, pin);
+            // Save to Redux/localStorage (use prop callback)
+            setEncryptedApiKeysBlob(encrypted);
+            dispatch(setEncryptedApiKeysBlobAction(encrypted));
+            setApiKeys({ publicKey, privateKey });
+            setIsUnlocked(true);
+            setShowFirstTimeModal(false);
+            setPinError("");
+            dispatch({ type: 'SESSION_UNLOCKED', pin });
+            resetInactivityTimer();
+        } catch (err) {
+            setPinError("Failed to encrypt and save keys.");
+        } finally {
+            clearEncryptionCache();
+        }
+    }, [setEncryptedApiKeysBlob, resetInactivityTimer]);
+
+    // Reset logic: clear blob, keys, and session
+    const handleReset = useCallback(() => {
+        setEncryptedApiKeysBlob(null); // Remove blob from storage
+        setApiKeys(null);
+        setIsUnlocked(false);
+        setShowFirstTimeModal(true);
+        setShowPinModal(false);
+        setPinError("");
+        dispatch({ type: 'SESSION_LOCKED' });
+        clearEncryptionCache();
+        if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    }, [setEncryptedApiKeysBlob]);
+
+    // Expose context API
     const value = {
         isUnlocked,
         apiKeys,
         requestUnlock,   // Call to prompt unlock modal
         lock: handleLock,
         lockedByTimeout,
+        showPinModal,
+        setShowPinModal,
+        handleUnlock,
+        handleLock,
+        pinError,
+        setPinError,
+        // First time setup
+        showFirstTimeModal,
+        setShowFirstTimeModal,
+        handleFirstTimeSave,
+        handleReset,
     };
-
-    // --- PIN Modal UI (plug in your MaskableTextField) ---
-    function PinModal() {
-        if (!showPinModal) return null;
-        return (
-            <div className="pin-modal">
-                <div className="modal-content">
-                    <h2>Enter PIN to Unlock</h2>
-                    <form
-                        onSubmit={e => {
-                            e.preventDefault();
-                            const pin = e.target.elements.pin.value;
-                            handleUnlock(pin);
-                            e.target.reset();
-                        }}
-                    >
-                        {/* Replace with your MaskableTextField if available */}
-                        <input
-                            name="pin"
-                            type="password"
-                            autoComplete="off"
-                            minLength={4}
-                            maxLength={32}
-                            required
-                            inputMode="text"
-                            pattern="[0-9]*"
-                            autoFocus
-                        />
-                        <button type="submit">Unlock</button>
-                        <button type="button" onClick={handleLock}>Cancel</button>
-                    </form>
-                    {pinError && <div className="error">{pinError}</div>}
-                </div>
-            </div>
-        );
-    }
 
     return (
         <SessionUnlockContext.Provider value={value}>
             {children}
-            <PinModal />
         </SessionUnlockContext.Provider>
     );
 }
 
 SessionUnlockProvider.propTypes = {
     children: PropTypes.node.isRequired,
-    encryptedApiKeysBlob: PropTypes.string.isRequired,
-    genesis: PropTypes.string.isRequired
+    encryptedApiKeysBlob: PropTypes.string,
+    setEncryptedApiKeysBlob: PropTypes.func.isRequired,
+    genesis: PropTypes.string,
 };
 
-// --- Custom hook for consumers ---
 export function useSessionUnlock() {
     const ctx = useContext(SessionUnlockContext);
     if (!ctx) throw new Error("useSessionUnlock must be used within SessionUnlockProvider");

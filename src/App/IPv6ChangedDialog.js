@@ -12,7 +12,7 @@ export default function IPv6ChangedDialog({ open, currentIPv6, onClose }) {
     const dispatch = useDispatch();
 
     const showIPv6ChangedDialog = useSelector(state => state.ui.showIPv6ChangedDialog);
-    const ipv6 = useSelector(state => state.settings.ipv6);
+    const ipv6 = useSelector(state => state.session.ipv6);
 
     const handleCopy = () => {
         copyToClipboard(currentIPv6);

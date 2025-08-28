@@ -1,15 +1,21 @@
 import { encryptApiKeys, decryptApiKeys } from '../utils/encryption';
 
-const ENCRYPTED_FIELDS = ['publicKey', 'privateKey'];
-const ENCRYPTION_PREFIX = 'ENC:';
+const UNLOCK_ACTIONS = [
+    'SET_UNLOCKED',      // Example: set session as unlocked
+    'SET_SESSION',       // Example: updated session, possibly after unlock
+    'SET_PIN',
+    // Add others as needed
+    'INITIALIZE',
+    '@@NWM/INITIALIZE'
+];
 
-function isEncrypted(value) {
-    return typeof value === 'string' && value.startsWith(ENCRYPTION_PREFIX);
+// Helper to check if action triggers decryption
+function shouldAttemptDecryption(action) {
+    return UNLOCK_ACTIONS.includes(action.type);
 }
 
-let lastPersistedSettings = null;
-
-export const encryptedStorageMiddleware = (selector) => (store) => (next) => (action) => {
+// Only persist the encrypted blob and non-sensitive fields
+export const encryptedStorageMiddleware = (selector) => (store) => (next) => async (action) => {
     const result = next(action);
 
     if (action.type === 'UPDATE_DECRYPTED_SETTINGS') {
@@ -17,68 +23,68 @@ export const encryptedStorageMiddleware = (selector) => (store) => (next) => (ac
     }
 
     const state = store.getState();
-    const isUnlocked = state.session?.isUnlocked;
-    const pin = state.session?.pin;
-    if (!isUnlocked || !pin) return result;
+    const { isUnlocked, pin, dexTradeModule } = state.session || {};
+    if (!isUnlocked || !pin || !dexTradeModule) return result;
 
-    // Encrypt fields if needed
-    const encryptedSettings = { ...state.session };
-    ENCRYPTED_FIELDS.forEach(field => {
-        const val = encryptedSettings[field];
-        if (val && !isEncrypted(val)) {
-            encryptedSettings[field] = encryptApiKeys(val, pin);
-        }
-    });
+    // Only persist if keys are present
+    const { publicKey, privateKey, ...rest } = dexTradeModule;
+    if (!publicKey || !privateKey) return result;
 
-    // Only persist if settings changed
-    if (JSON.stringify(encryptedSettings) !== JSON.stringify(lastPersistedSettings)) {
+    // Build encrypted blob for sensitive fields
+    const encryptedApiKeys = await encryptApiKeys({ publicKey, privateKey }, pin);
+
+    // Remove sensitive (decrypted) fields from persist obj
+    const persistObj = {
+        ...rest,
+        encryptedApiKeys,
+    };
+
+    // Only persist if changed (very basic, can be improved for deep equality)
+    if (!window._lastDexTradePersist || JSON.stringify(window._lastDexTradePersist) !== JSON.stringify(persistObj)) {
         const { updateStorage } = NEXUS.utilities;
-        updateStorage({ dexTradeModule: encryptedSettings });
-        lastPersistedSettings = encryptedSettings;
+        updateStorage({ dexTradeModule: persistObj });
+        window._lastDexTradePersist = persistObj;
     }
 
     return result;
 };
 
-// DECRYPTION ON INITIAL LOAD (not runtime)
-export const decryptionMiddleware = (store) => (next) => (action) => {
-    if ((action.type === 'INITIALIZE' || action.type === '@@NWM/INITIALIZE') && action.payload.storageData) {
-        const state = store.getState();
-        const isUnlocked = state.session?.isUnlocked;
-        const pin = state.session?.pin;
-        if (!isUnlocked || !pin) return next(action);
+export const decryptionMiddleware = (store) => (next) => async (action) => {
+    const result = next(action);
 
-        // Decrypt settings fields
-        const decryptedSettings = { ...action.payload.storageData.dexTradeModule };
-        let needsDecryption = false;
+    // Only run for relevant actions
+    if (!shouldAttemptDecryption(action)) return result;
 
-        ENCRYPTED_FIELDS.forEach(field => {
-            const val = decryptedSettings[field];
-            if (val && isEncrypted(val)) {
-                const decrypted = decryptApiKeys(val, pin);
-                if (decrypted !== null) {
-                    decryptedSettings[field] = decrypted;
-                    needsDecryption = true;
+    const state = store.getState();
+    const { isUnlocked, pin, dexTradeModule } = state.session || {};
+
+    // Only decrypt if session unlocked, pin present, encrypted blob present, and not already decrypted
+    if (
+        isUnlocked &&
+        pin &&
+        dexTradeModule &&
+        dexTradeModule.encryptedApiKeys &&
+        (!dexTradeModule.publicKey || !dexTradeModule.privateKey)
+    ) {
+        try {
+            const { publicKey, privateKey } = await decryptApiKeys(
+                dexTradeModule.encryptedApiKeys,
+                pin
+            );
+            // Merge decrypted keys into dexTradeModule
+            store.dispatch({
+                type: 'UPDATE_DECRYPTED_SETTINGS',
+                payload: {
+                    ...dexTradeModule,
+                    publicKey,
+                    privateKey,
                 }
-            }
-        });
-
-        // Replace only if something changed
-        if (needsDecryption) {
-            const decryptedPayload = {
-                ...action.payload,
-                storageData: {
-                    ...action.payload.storageData,
-                    dexTradModule: decryptedSettings
-                }
-            };
-
-            return next({
-                ...action,
-                payload: decryptedPayload
             });
+        } catch (e) {
+            console.error('Failed to decrypt API keys:', e);
+            // Optionally, dispatch an error action or set error state
         }
     }
 
-    return next(action);
+    return result;
 };

@@ -39,7 +39,7 @@ export async function safeApiCall(apiFunc, ...args) {
 export async function makeDexTradePrivateRequest(endpoint, body = {}, token, secret) {
     // Compare current IPV6 address with stored value
     const state = store.getState();
-    const storedIPv6 = state.settings?.ipv6;
+    const storedIPv6 = state.session?.ipv6;
     const IPv6RightNow = await getPublicIPv6();
     console.log('IPv6 right now:', IPv6RightNow);
     console.log('Stored IPv6:', storedIPv6);

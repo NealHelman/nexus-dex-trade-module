@@ -6,6 +6,7 @@ import { Copyright } from '../utils/copyright.js';
 import nxsPackage from '../../nxs_package.json';
 import styles from '../Styles/styles.css';
 import Panel from '../shared/components/Panel.js';
+import MaskableTextField from '../shared/components/MaskableTextField.tsx';
 import { getPublicIPv6 } from '../utils/getIPV6';
 import IPv6ChangedDialog from './IPv6ChangedDialog';
 
@@ -54,13 +55,47 @@ const useEffect = React.useEffect;
 export default function Main() {
     const dispatch = useDispatch();
 
-    // Get data from Redux store instead of localStorage
-    const { isUnlocked, apiKeys, requestUnlock, lock, lockedByTimeout } = useSessionUnlock();
+    // Selectors for encrypted blob and Redux state
+    const encryptedApiKeysBlob = useSelector(state => state.storageData?.dexTradeModule?.encryptedApiKeys);
+    // For saving blob to Redux:
+    const setEncryptedApiKeysBlob = (blob) => {
+        dispatch({
+            type: 'SET_ENCRYPTED_API_KEYS_BLOB',
+            payload: blob,
+        });
+    };
+
+    // SessionUnlock context
+    const {
+        isUnlocked,
+        apiKeys,
+        requestUnlock,
+        lock,
+        lockedByTimeout,
+        showPinModal,
+        setShowPinModal,
+        handleUnlock,
+        handleLock,
+        pinError,
+        setPinError,
+        showFirstTimeModal,
+        setShowFirstTimeModal,
+        handleFirstTimeSave,
+        handleReset,
+    } = useSessionUnlock();
+
     const publicKey = apiKeys?.publicKey;
     const privateKey = apiKeys?.privateKey;
 
-    const selected = useSelector((state) => state.settings.selectedTab);
-    const ipv6 = useSelector((state) => state.settings.ipv6);
+    // First-time modal state
+    const [firstTimePublicKey, setFirstTimePublicKey] = useState('');
+    const [firstTimePrivateKey, setFirstTimePrivateKey] = useState('');
+    const [firstTimePin, setFirstTimePin] = useState('');
+    const [firstTimePinConfirm, setFirstTimePinConfirm] = useState('');
+    const [firstTimeError, setFirstTimeError] = useState('');
+
+    const selected = useSelector((state) => state.session.selectedTab);
+    const ipv6 = useSelector((state) => state.session.ipv6);
     const showIPv6ChangedDialog = useSelector((state) => state.ui.showIPv6ChangedDialog);
     const currentIPv6 = useSelector((state) => state.ui.currentIPv6);
 
@@ -96,7 +131,7 @@ export default function Main() {
 
     // Ref to track last saved tab to avoid repeated writes
     const lastSavedTabRef = useRef(null);
-    const currentApiKey = useSelector((state) => state.settings.apiKey);
+    const currentApiKey = useSelector((state) => state.session.apiKey);
 
     const handleCredsSubmit = async (publicKeyValue, privateKeyValue) => {
         if (!isUnlocked) {
@@ -250,7 +285,7 @@ export default function Main() {
                 {selected === 'settings' && <SettingsPage />}
 
                 {/* Modal for API key input */}
-                {showApiKeyModal && !isAuthenticated && (
+                {(showApiKeyModal && !isAuthenticated && !showFirstTimeModal) && (
                     <Modal
                         title="Dex-Trade API Key"
                         removeModal={() => setShowApiKeyModal(false)}
@@ -355,6 +390,130 @@ export default function Main() {
                     currentIPv6={currentIPv6}
                     onClose={() => dispatch(setShowIPv6ChangedDialog(false))}
                 />
+            )}
+            {/* First-time API Key + PIN modal */}
+            {showFirstTimeModal && (
+                <Modal
+                    title="Dex-Trade API Key Setup"
+                    removeModal={() => setShowFirstTimeModal(false)}
+                    show
+                >
+                    <FieldSet
+                        legend="Enter your Dex-Trade API Keys"
+                        style={{ marginLeft: '1em', marginRight: '1em' }}
+                    >
+                        <div style={{ marginBottom: '15px', color: '#ccc' }}>
+                            Public Key:{' '}
+                            <TextField
+                                label="Public Key"
+                                value={firstTimePublicKey}
+                                onChange={e => setFirstTimePublicKey(e.target.value)}
+                            />
+                        </div>
+                        <div style={{ marginBottom: '15px', color: '#ccc' }}>
+                            Private Key:{' '}
+                            <TextField
+                                label="Private Key"
+                                value={firstTimePrivateKey}
+                                onChange={e => setFirstTimePrivateKey(e.target.value)}
+                            />
+                        </div>
+                        <div style={{ marginBottom: '15px', color: '#ccc' }}>
+                            PIN:{' '}
+                            <TextField
+                                label="PIN"
+                                type="password"
+                                value={firstTimePin}
+                                onChange={e => setFirstTimePin(e.target.value)}
+                            />
+                        </div>
+                        <div style={{ marginBottom: '15px', color: '#ccc' }}>
+                            Confirm PIN:{' '}
+                            <TextField
+                                label="Confirm PIN"
+                                type="password"
+                                value={firstTimePinConfirm}
+                                onChange={e => setFirstTimePinConfirm(e.target.value)}
+                            />
+                        </div>
+                        {firstTimeError && <div style={{ color: 'red' }}>{firstTimeError}</div>}
+                        <div style={{ textAlign: 'right' }}>
+                            <Button
+                                skin="primary"
+                                style={{ marginTop: '1em' }}
+                                disabled={!firstTimePublicKey || !firstTimePrivateKey || !firstTimePin || !firstTimePinConfirm}
+                                onClick={async () => {
+                                    setFirstTimeError('');
+                                    if (firstTimePin !== firstTimePinConfirm) {
+                                        setFirstTimeError('PINs do not match.');
+                                        return;
+                                    }
+                                    try {
+                                        await handleFirstTimeSave({
+                                            publicKey: firstTimePublicKey,
+                                            privateKey: firstTimePrivateKey,
+                                            pin: firstTimePin,
+                                            pinConfirm: firstTimePinConfirm,
+                                        });
+                                    } catch (err) {
+                                        setFirstTimeError(err.message || 'Failed to encrypt and save keys.');
+                                    }
+                                }}
+                            >
+                                Save
+                            </Button>
+                        </div>
+                    </FieldSet>
+                    <div style={{ marginTop: 16, marginBottom: '1em', fontSize: 13, color: '#999', textAlign: 'center' }}>
+                        If you do not have a Dex-Trade.com API key yet, go{' '}
+                        <span className='linkStyle' onClick={() => openInBrowser('https://dex-trade.com/account/api-management')}>here</span>
+                        <br />You'll be prompted to log into your Dex-Trade.com account.
+                        If you don't have a Dex-Trade.com account yet, go{' '}
+                        <span className='linkStyle' onClick={() => openInBrowser('https://dex-trade.com/refcode/qj9c43')}>here</span>.
+                    </div>
+                    <div style={{ marginTop: 16, marginBottom: '1em', fontSize: 13, color: '#999', textAlign: 'center' }}>
+                        Your credentials are stored securely and only used locally.<br />
+                        <b>You will need your PIN to unlock or change your API keys in the future.</b>
+                    </div>
+                </Modal>
+            )}
+
+            {/* PIN unlock modal */}
+            {showPinModal && (
+                <Modal
+                    title="Unlock Session"
+                    removeModal={() => setShowPinModal(false)}
+                    show
+                >
+                    <form
+                        onSubmit={e => {
+                            e.preventDefault();
+                            const pin = e.target.elements.pin.value;
+                            handleUnlock(pin);
+                            e.target.reset();
+                        }}
+                    >
+                        <FieldSet legend="Enter your PIN">
+                            <TextField
+                                name="pin"
+                                type="password"
+                                label="PIN"
+                                autoFocus
+                                minLength={4}
+                                maxLength={32}
+                                required
+                                onChange={() => setPinError("")}
+                            />
+                            {pinError && <div style={{ color: 'red' }}>{pinError}</div>}
+                        </FieldSet>
+                        <div style={{ textAlign: 'right' }}>
+                            <Button skin="primary" type="submit">Unlock</Button>
+                            <Button skin="filled" type="button" onClick={handleLock} style={{ marginLeft: '1em' }}>
+                                Cancel
+                            </Button>
+                        </div>
+                    </form>
+                </Modal>
             )}
         </Panel>
     );

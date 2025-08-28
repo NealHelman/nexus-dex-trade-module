@@ -10,6 +10,15 @@ export const setPrivateKey = (privateKey) => ({
     payload: privateKey,
 });
 
+export const setEncryptedApiKeysBlob = (blob) => ({
+    type: TYPE.SET_ENCRYPTED_API_KEYS_BLOB,
+    payload: blob,
+});
+
+export const clearEncryptedApiKeysBlob = () => ({
+    type: TYPE.CLEAR_ENCRYPTED_API_KEYS_BLOB,
+});
+
 export const setSelectedTab = (tab) => ({
     type: TYPE.SET_SELECTED_TAB,
     payload: tab,

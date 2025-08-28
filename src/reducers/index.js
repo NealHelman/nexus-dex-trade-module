@@ -18,13 +18,16 @@ export default function createReducer() {
 
         if (action.type === INITIALIZE) {
             console.log('INITIALIZE state with action:', action);
-            const { storageData, moduleState } = action.payload;
-            if (storageData || moduleState) {
-                return {
-                    ...newState,
-                    ...action.payload.storageData,
-                    ...action.payload.moduleState,
-                };
+            const { storageData } = action.payload;
+            return {
+                ...newState,
+                session: {
+                    ...newState.session,
+                    dexTradeModule: {
+                        ...newState.session.dexTradeModule,
+                        ...(storageData?.dexTradeModule || {}),
+                    },
+                },
             }
         }
 

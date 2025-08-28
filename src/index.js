@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { Provider, useSelector } from 'react-redux';
+import { Provider, useSelector, useDispatch } from 'react-redux';
 import { listenToWalletData } from 'nexus-module';
 import marketplaceTheme from './Styles/theme';
 import { SessionUnlockProvider } from './context/SessionUnlockProvider.jsx';
@@ -21,9 +21,17 @@ console.log('Initial Redux State:', store.getState());
 
 // Hook-using wrapper component
 function Root() {
-    // All hooks must be inside a component body!
-    const genesis = useSelector(state => state.nexus.userStatus.genesis);
+    const genesis = useSelector(state => state.nexus?.userStatus?.genesis);
     const encryptedApiKeysBlob = useSelector(state => state.storageData?.dexTradeModule?.encryptedApiKeys);
+
+    const setEncryptedApiKeysBlob = (blob) => {
+        dispatch({
+            type: 'SET_ENCRYPTED_API_KEYS_BLOB',
+            payload: blob,
+        });
+    };
+
+    if (!genesis) return null;
 
     return (
         <SessionUnlockProvider
